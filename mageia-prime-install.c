@@ -52,15 +52,45 @@ int fcopy(char *name_src, char *name_dest)
 	return(0);
 }
 
-int main()
+int main(int argc, char **argv)
 {
 	FILE *fp;
 	char buffer[BUFSIZ];
 	int ret, clean = 0;
 	uid_t uid;
+	int i;
+	int is_nouveau_loaded = 0;
+	int is_xorg_free;
+	int is_xorg_to_restore = 0;
+	int have_to_zap = 0;
 	
 	long unsigned pcibus_intel = 0, pcidev_intel = 0, pcifunc_intel = 0;
 	long unsigned pcibus_nvidia = 0, pcidev_nvidia = 0, pcifunc_nvidia = 0;
+
+	/* scan arguments */
+        for (i = 1; i < argc; i++)
+        {
+                if (*argv[i] == '-')
+                {
+                	char opt = argv[i][1];
+                	
+                	if (opt != '\0')
+                	{
+                		switch (opt)
+                		{
+                			case 'z': case 'Z':
+                				if (argv[i][2] == '\0')
+                				{
+                					have_to_zap = 1;
+                				}
+                				break;
+                				
+					default:
+						break;
+                		}
+                	}
+		}
+	}
 
 	if ((uid = getuid()) != 0) {
 		fprintf(stderr, "Warning: you must run this command as root!\n\n");
@@ -92,6 +122,49 @@ int main()
 
 	pclose(fp);
 
+	fp = popen("/sbin/lsmod | grep nouveau", "r");
+
+	if (fp == NULL) {
+		fprintf(stderr, "Can't run /sbin/lsmod: %s (error %d)\n", strerror(errno), errno);
+		exit(1);
+	}
+
+	while (fgets(buffer, sizeof(buffer), fp) != NULL)
+	{
+		if (strcasestr(buffer, "nouveau")) {
+			if ((strncmp("nouveau", buffer, 7)) == 0) {
+				    fprintf(stderr, "Found nouveau kernel module loaded: %s", buffer);
+				    is_nouveau_loaded = 1;
+			}
+		}
+	}
+	pclose(fp);
+
+	if (is_nouveau_loaded)
+	{
+	    fprintf(stderr,"Unloading nouveau kernel module...");
+	    if ((ret = system("/usr/sbin/rmmod nouveau")) != 0) {
+		fprintf(stderr,"Warning: can't unload nouveau kernel module");
+		clean++;
+	    }
+	    else {
+		fprintf(stderr,"done.\n");
+	    }
+	    
+	    if ((fp = fopen("/etc/modprobe.d/00_mageia-prime.conf", "w")) == NULL)
+	    {
+	    	fprintf(stderr,"Warning: can't blacklist nouveau driver in /etc/modprobe.d/00_mageia_prime.conf\n");
+	    	clean++;
+	    }
+	    else
+	    {
+	    	fprintf(fp, "blacklist nouveau\n");
+	    	fprintf(stderr, "Blacklisting nouveau kernel module in /etc/modprobe.d/00_mageia_prime.conf\n");
+	    	fprintf(stderr, "(shouldn't be enough, try toadd \'nouveau.modeset=0\' to your booting command line)\n");
+	    	fclose(fp);
+	    }
+	}
+
 	fprintf(stderr, "Checking package dkms-nvidia-current...");
 	if ((ret = system("/bin/rpm --quiet -q dkms-nvidia-current")) != 0)
 	{
@@ -100,6 +173,7 @@ int main()
 		if ((ret = system("/usr/sbin/urpmi dkms-nvidia-current")) != 0)
 		{
 			fprintf(stderr, "failed!\n");
+			clean++;
 		}
 		else
 		{
@@ -108,26 +182,7 @@ int main()
 	}
 	else
 	{
-		fprintf(stderr, "installed.\n");
-	}
-
-	fprintf(stderr, "Checking package nvidia-current-doc-html...");
-	if ((ret = system("/bin/rpm --quiet -q nvidia-current-doc-html")) != 0)
-	{
-		fprintf(stderr, "installing...");
-		
-		if ((ret = system("/usr/sbin/urpmi nvidia-current-doc-html")) != 0)
-		{
-			fprintf(stderr, "failed!\n");
-		}
-		else
-		{
-			fprintf(stderr, "ok.\n");
-		}
-	}
-	else
-	{
-		fprintf(stderr, "installed.\n");
+		fprintf(stderr, "already installed.\n");
 	}
 
 	fprintf(stderr, "Checking package nvidia-current-cuda-opencl...");
@@ -138,6 +193,7 @@ int main()
 		if ((ret = system("/usr/sbin/urpmi nvidia-current-cuda-opencl")) != 0)
 		{
 			fprintf(stderr, "failed!\n");
+			clean++;
 		}
 		else
 		{
@@ -146,7 +202,7 @@ int main()
 	}
 	else
 	{
-		fprintf(stderr, "installed.\n");
+		fprintf(stderr, "already installed.\n");
 	}
 
 	fprintf(stderr, "Checking package x11-driver-video-nvidia-current...");
@@ -157,6 +213,7 @@ int main()
 		if ((ret = system("/usr/sbin/urpmi x11-driver-video-nvidia-current")) != 0)
 		{
 			fprintf(stderr, "failed!\n");
+			clean++;
 		}
 		else
 		{
@@ -165,71 +222,117 @@ int main()
 	}
 	else
 	{
-		fprintf(stderr, "installed.\n");
+		fprintf(stderr, "already installed.\n");
 	}
+	
+	if ((fp = fopen("/etc/X11/xorg.conf", "r")) == NULL)
+	{
+		fprintf(stderr,"You are running an X11 system without any xorg.conf.\n");
+		is_xorg_free = 1;
+	}
+	else
+	{
+		is_xorg_free = 0;
+		fclose(fp);
+	}
+	
+	if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime.preserve", "r")) != NULL)
+	{
+		fprintf(stderr, "Found previous mageia-prime configuration.\n");
+		is_xorg_to_restore = 1;
+		fclose(fp);
+	}
+	else
+		is_xorg_to_restore = 0;
 	
 	if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime", "r")) != NULL)
 	{
-		fprintf(stderr, "\nIt seems mageia-prime was already configured, manually delete the file /etc/X11/xorg.conf.nvidiaprime if you want to continue\n");
+		fprintf(stderr, "\nIt seems Mageia-Prime was already configured, manually delete the file /etc/X11/xorg.conf.nvidiaprime or unconfigure with mageia-prime-uninstall if you want to continue\n");
 		fclose(fp);
 		exit(1);
 	}
-
-	if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime", "w")) == NULL)
+	
+	if (!is_xorg_to_restore)
 	{
-		fprintf(stderr, "Can't write to file /etc/X11/xorg.conf.nvidiaprime: %d %s\n", errno, strerror(errno));
-		exit(1);
+		if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime", "w")) == NULL)
+		{
+			fprintf(stderr, "Can't write to file /etc/X11/xorg.conf.nvidiaprime: %s (error %d)\n", strerror(errno), errno);
+			exit(1);
+		}
+
+		fprintf(fp,"#\n"
+	           	   "# automatically generated by mageia-prime-install\n"
+	           	   "# for running NVidia Prime on Mageia GNU/Linux OS\n"
+	           	   "#\n"
+	           	   "Section \"ServerLayout\"\n"
+	           	   "\tIdentifier \"layout\"\n"
+	           	   "\tScreen 0 \"nvidia\"\n"
+	           	   "\tInactive \"intel\"\n"
+	           	   "EndSection\n\n"
+	           	   "Section \"Device\"\n"
+	           	   "\tIdentifier \"intel\"\n"
+	           	   "\tDriver \"modesetting\"\n");
+		fprintf(fp,"#\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_intel, pcidev_intel, pcifunc_intel);
+		fprintf(fp,"\tOption \"AccelMethod\" \"None\"\n"
+		   	   "EndSection\n\n"
+		   	   "Section \"Screen\"\n"
+		   	   "\tIdentifier \"intel\"\n"
+		   	   "\tDevice \"intel\"\n"
+		   	   "EndSection\n\n"
+		   	   "Section \"Device\"\n"
+		   	   "\tIdentifier \"nvidia\"\n"
+		   	   "\tDriver \"nvidia\"\n");
+		fprintf(fp,"\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_nvidia, pcidev_nvidia, pcifunc_nvidia);
+		fprintf(fp,"EndSection\n\n"
+		   	"Section \"Screen\"\n"
+		   	"\tIdentifier \"nvidia\"\n"
+		   	"\tDevice \"nvidia\"\n"
+		   	"\tOption \"AllowEmptyInitialConfiguration\" \"on\"\n"
+		   	"\t#Option \"UseDisplayDevice\" \"None\"\n"
+		   	"\t#Option \"IgnoreDisplayDevices\" \"CRT\"\n"
+		   	"\t#Option \"UseEDID\" \"off\"\n"
+		   	"\t#Option \"UseEdidDpi\" \"false\"\n"
+		   	"\t#Option \"DPI\" \"96 x 96\"\n"
+		   	"\t#Option \"TripleBuffer\" \"true\"\n"
+		   	"EndSection\n");
+		fclose(fp);
+	}
+	else
+	{
+		fprintf(stderr, "Restoring previous mageia-prime configuration\n");
+		if ((fcopy("/etc/X11/xorg.conf.nvidiaprime.preserve", "/etc/X11/xorg.conf.nvidiaprime")) != 0)
+		{
+			fprintf(stderr, "Can't copy /etc/X11/xorg.conf.nvidiaprime.preserve to /etc/X11/xorg.conf.nvidiaprime: %s (error: %d)\n", strerror(errno), errno);
+			exit(1);
+		}
 	}
 
-	fprintf(fp,"#\n"
-	           "# automatically generated by mageia-prime-install\n"
-	           "# for running NVidia Prime on Mageia GNU/Linux OS\n"
-	           "#\n"
-	           "Section \"ServerLayout\"\n"
-	           "\tIdentifier \"layout\"\n"
-	           "\tScreen 0 \"nvidia\"\n"
-	           "\tInactive \"intel\"\n"
-	           "EndSection\n\n"
-	           "Section \"Device\"\n"
-	           "\tIdentifier \"intel\"\n"
-	           "\tDriver \"modesetting\"\n");
-	fprintf(fp,"#\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_intel, pcidev_intel, pcifunc_intel);
-	fprintf(fp,"\tOption \"AccelMethod\" \"None\"\n"
-		   "EndSection\n\n"
-		   "Section \"Screen\"\n"
-		   "\tIdentifier \"intel\"\n"
-		   "\tDevice \"intel\"\n"
-		   "EndSection\n\n"
-		   "Section \"Device\"\n"
-		   "\tIdentifier \"nvidia\"\n"
-		   "\tDriver \"nvidia\"\n");
-	fprintf(fp,"\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_nvidia, pcidev_nvidia, pcifunc_nvidia);
-	fprintf(fp,"EndSection\n\n"
-		   "Section \"Screen\"\n"
-		   "\tIdentifier \"nvidia\"\n"
-		   "\tDevice \"nvidia\"\n"
-		   "\tOption \"AllowEmptyInitialConfiguration\" \"on\"\n"
-		   "\t#Option \"UseDisplayDevice\" \"None\"\n"
-	           "\t#Option \"IgnoreDisplayDevices\" \"CRT\"\n"
-	           "\t#Option \"UseEDID\" \"off\"\n"
-		   "EndSection\n");
-
-	fclose(fp);
-
-	if ((rename("/etc/X11/xorg.conf", "/etc/X11/xorg.conf.bak.beforenvidiaprime")) != 0)
+	/* mark system is running in an xorg.conf free configuration */
+	if (is_xorg_free)
 	{
-		fprintf(stderr, "Can't backup file /etc/X11/xorg.conf: %d %s\n", errno, strerror(errno));
+		if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime.xorgfree", "w")) == NULL)
+		{
+			fprintf(stderr, "Can't write to file /etc/X11/xorg.conf.nvidiaprime.xorgfree: %s (error %d)\n", strerror(errno), errno);
+			exit(1);
+		}
+	}
+	else
+	{
+		if ((rename("/etc/X11/xorg.conf", "/etc/X11/xorg.conf.bak.beforenvidiaprime")) != 0)
+		{
+			fprintf(stderr, "Can't backup file /etc/X11/xorg.conf: %s (error %d)\n", strerror(errno), errno);
+		}
 	}
 
 	if ((fcopy("/etc/X11/xorg.conf.nvidiaprime", "/etc/X11/xorg.conf")) != 0)
 	{
-		fprintf(stderr, "Can't copy /etc/X11/xorg.conf.nvidiaprime to /etc/X11/xorg.conf: %d %s\n", errno, strerror(errno));
+		fprintf(stderr, "Can't copy /etc/X11/xorg.conf.nvidiaprime to /etc/X11/xorg.conf: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
 	}
 	
 	if ((fp = fopen("/etc/X11/xsetup.d/000nvidiaprime.xsetup", "w")) == NULL)
 	{
-		fprintf(stderr, "Can't write to file /etc/X11/xsetup.d/000nvidia-prime.xsetup: %d %s\n", errno, strerror(errno));
+		fprintf(stderr, "Can't write to file /etc/X11/xsetup.d/000nvidia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
 	}
 	fprintf(fp, "# to be sourced\n"
@@ -241,13 +344,13 @@ int main()
 	/* 493 is chmod 755 */
 	if ((chmod("/etc/X11/xsetup.d/000nvidiaprime.xsetup", 493)) < 0)
 	{
-		fprintf(stderr, "Can't chmod 755 file /etc/X11/xsetup.d/000nvidiaprime.xsetup: %d %s\n", errno, strerror(errno));
+		fprintf(stderr, "Can't chmod 755 file /etc/X11/xsetup.d/000nvidiaprime.xsetup: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
 	}
 
 	if ((fp = fopen("/etc/modules-load.d/nvidiaprime-drm.conf", "w")) == NULL)
 	{
-		fprintf(stderr, "Can't create file /etc/modules-load.d/nvidia-prime-drm.conf: %d %s\n", errno, strerror(errno));
+		fprintf(stderr, "Can't create file /etc/modules-load.d/nvidia-prime-drm.conf: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
 	}
 	fprintf(fp, "# automatically generated by mageia-prime-install\n");
@@ -288,14 +391,33 @@ int main()
 		fprintf(stderr, "Warning: failed to modprobe nvidia-drm kernel module\n");
 		clean++;
 	}
-	
+
 	if (clean > 0)
 	{
-		fprintf(stderr, "Mageia NVidia prime configured (with %d warnings). Please reaster X11 or reboot.\n", clean);
+		fprintf(stderr, "Mageia-Prime for NVidia configured (with %d warnings)\n", clean);
 	}
 	else
 	{
-		fprintf(stderr,"Mageia prime installed. Please restart X11 or reboot.\n");
+		if (!is_xorg_to_restore)
+		{
+			fprintf(stderr,"Mageia-Prime for NVidia installed.\n");
+		}
+		else
+			fprintf(stderr,"Mageia-Prime for NVidia reinstalled.\n");
+		
+	}
+
+	if (!have_to_zap)
+	{
+		fprintf(stderr, "Please restart X11 or reboot the system.\n");
+	}
+	else /* zap X11 */
+	{
+		fprintf(stderr,"Zapping X11.\n");
+		if ((ret = system("/bin/systemctl restart prefdm.service")) != 0)
+		{
+			fprintf(stderr, "Warning: Can't restart prefdm.service: %s (error %d)\n", strerror(errno), errno);
+		}
 	}
 
 	return(0);
