@@ -173,13 +173,24 @@ int main(int argc, char **argv)
 	    	fclose(fp);
 	    }
 	}
-	
+
+	fprintf(stderr, "Ensuring the nonfree repo is enabled...");
+	if ((ret = system("/usr/bin/dnf --quiet config-manager --set-enabled mageia-$(rpm -E %distro_arch)-nonfree")) != 0)
+	{
+		fprintf(stderr, "failed!\n");
+		clean++;
+	}
+	else
+	{
+		fprintf(stderr, "ok.\n");
+	}
+
 	fprintf(stderr, "Checking package dkms-nvidia-current...");
 	if ((ret = system("/bin/rpm --quiet -q dkms-nvidia-current")) != 0)
 	{
 		fprintf(stderr, "installing...");
 		
-		if ((ret = system("/usr/sbin/urpmi dkms-nvidia-current")) != 0)
+		if ((ret = system("/usr/bin/dnf install dkms-nvidia-current")) != 0)
 		{
 			fprintf(stderr, "failed!\n");
 			clean++;
@@ -199,7 +210,7 @@ int main(int argc, char **argv)
 	{
 		fprintf(stderr, "installing...");
 		
-		if ((ret = system("/usr/sbin/urpmi nvidia-current-cuda-opencl")) != 0)
+		if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
 		{
 			fprintf(stderr, "failed!\n");
 			clean++;
@@ -219,7 +230,7 @@ int main(int argc, char **argv)
 	{
 		fprintf(stderr, "installing...");
 		
-		if ((ret = system("/usr/sbin/urpmi x11-driver-video-nvidia-current")) != 0)
+		if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia-current")) != 0)
 		{
 			fprintf(stderr, "failed!\n");
 			clean++;
