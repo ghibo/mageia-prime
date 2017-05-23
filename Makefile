@@ -9,6 +9,7 @@ mageia-prime-uninstall: mageia-prime-uninstall.c
 	$(CC) $(CFLAGS) -o mageia-prime-uninstall mageia-prime-uninstall.c
 
 install: mageia-prime-install mageia-prime-uninstall
+	test -d $(DESTDIR)/usr/sbin || mkdir -p $(DESTDIR)/usr/sbin
 	install -m 755 mageia-prime-install mageia-prime-uninstall $(DESTDIR)/usr/sbin
 
 clean:
