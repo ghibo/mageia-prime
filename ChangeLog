@@ -1,3 +1,5 @@
+* 23 May 2017 - v0.3 - Added option -b for not blacklisting nouveau.
+
 * 22 May 2017 - v0.2 - Added support for configurations without xorg.conf, blacklisting nouveau.
 
 * 10 May 2017 - v0.1 - Initial Release

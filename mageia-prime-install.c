@@ -60,10 +60,10 @@ int main(int argc, char **argv)
 	uid_t uid;
 	int i;
 	int is_nouveau_loaded = 0;
+	int do_not_blacklist_nouveau = 0;
 	int is_xorg_free;
 	int is_xorg_to_restore = 0;
 	int have_to_zap = 0;
-	
 	long unsigned pcibus_intel = 0, pcidev_intel = 0, pcifunc_intel = 0;
 	long unsigned pcibus_nvidia = 0, pcidev_nvidia = 0, pcifunc_nvidia = 0;
 
@@ -84,7 +84,12 @@ int main(int argc, char **argv)
                 					have_to_zap = 1;
                 				}
                 				break;
-                				
+                			
+                			case 'b': case 'B':
+                				if (argv[i][2] == '\0')
+                				{
+                					do_not_blacklist_nouveau = 1;
+                				}	
 					default:
 						break;
                 		}
@@ -151,6 +156,10 @@ int main(int argc, char **argv)
 		fprintf(stderr,"done.\n");
 	    }
 	    
+	}
+	
+	if (!do_not_blacklist_nouveau)
+	{
 	    if ((fp = fopen("/etc/modprobe.d/00_mageia-prime.conf", "w")) == NULL)
 	    {
 	    	fprintf(stderr,"Warning: can't blacklist nouveau driver in /etc/modprobe.d/00_mageia_prime.conf\n");
@@ -164,7 +173,7 @@ int main(int argc, char **argv)
 	    	fclose(fp);
 	    }
 	}
-
+	
 	fprintf(stderr, "Checking package dkms-nvidia-current...");
 	if ((ret = system("/bin/rpm --quiet -q dkms-nvidia-current")) != 0)
 	{

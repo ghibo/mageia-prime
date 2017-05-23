@@ -74,6 +74,12 @@ or
 
 	/usr/sbin/mageia-prime-uninstall -z
 
+There is still one option to avoid blacklisting nouveau (e.g. in the case
+the nouveau kernel module is not automatically loaded or it was disabled at
+boot with nouveau.modeset=0):
+
+	/usr/bin/mageia-prime-install -b
+
 
 ## Troubleshooting
 
