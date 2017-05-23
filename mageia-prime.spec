@@ -7,8 +7,10 @@ URL:		https://github.com/ghibo/%{name}
 Source0:	%{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 License:	GPLv3
 Requires:	pciutils
-Requires:	urpmi
 Requires:	kmod
+Requires:	dnf
+Requires:	dnf-command(install)
+Requires:	dnf-command(config-manager)
 
 %description
 A tool for easily configuring NVidia Prime under Mageia GNU/Linux.
