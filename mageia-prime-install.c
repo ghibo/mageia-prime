@@ -52,6 +52,211 @@ int fcopy(char *name_src, char *name_dest)
 	return(0);
 }
 
+int nouveau_nomodeset_already_installed = 0;
+int grub_add_nouveau_nomodeset()
+{
+	FILE *fp, *fpnew;
+	char buffer[BUFSIZ];
+	char bufnew[BUFSIZ+128];
+	const char *nouveau_modeset_zero = "nouveau.modeset=0";
+	const char *grub_cmdline_linux_default = "GRUB_CMDLINE_LINUX_DEFAULT=\"";
+	char *pos;
+	size_t l, l1;
+	int ret;
+	extern int nouveau_nomodeset_already_installed;
+	
+	l = strlen(grub_cmdline_linux_default);
+	l1 = strlen(nouveau_modeset_zero);
+	
+	/* work on a copy of /etc/default/grub */
+	if ((fcopy("/etc/default/grub", "/etc/default/grub.bak.nvidiaprime")) != 0)
+	{
+		fprintf(stderr, "Can't copy /etc/default/grub to /etc/default/grub.temp.nvidiaprime: %s (error: %d)\n", strerror(errno), errno);
+		return(1);
+	}
+	
+	if ((fp = fopen("/etc/default/grub.bak.nvidiaprime", "r")) == NULL)
+	{
+		fprintf(stderr, "Can't open file /etc/default/grub.bak.nvidiaprime: %s (error %d)\n", strerror(errno), errno);
+		return(1);
+	}
+	
+	if ((fpnew = fopen("/etc/default/grub.temp.nvidiaprime", "w")) == NULL)
+	{
+		fprintf(stderr, "Can't open file /etc/default/grub.temp.nvidiaprime");
+		fclose(fp);
+		return(1);
+	}
+	
+	while (fgets(buffer, sizeof(buffer), fp) != NULL)
+	{
+		*(bufnew) = '\0';
+		if ((pos = strstr(buffer, grub_cmdline_linux_default)))
+		{
+			if (strstr(pos + l, nouveau_modeset_zero))
+			{
+				if ((fputs(buffer, fpnew)) == EOF)
+				{
+					fprintf(stderr, "Can't write on file: /etc/default/grub.temp.nvidiaprime: %s (error %d)\n", strerror(errno), errno);
+					break;
+				} 
+				
+				/* already contains nouveau.modeset=0, skipping */
+				nouveau_nomodeset_already_installed = 1;
+				fprintf(stderr, "/etc/default/grub already contains nouveau.modeset=0 option, skipping...\n");
+			}
+			else /* add nouveau.modeset=0 */
+			{
+				nouveau_nomodeset_already_installed = 0;
+				
+				if (l <= BUFSIZ)
+				{
+					strncpy(bufnew, buffer, l);
+					*(bufnew + l) = '\0';
+				}
+				
+				if (*(buffer+l) == ' ')
+				{
+					strncat(bufnew, " ", 1);
+					strncat(bufnew, nouveau_modeset_zero, l1);
+					strncat(bufnew, buffer + l, strlen(buffer + l));
+				}
+				else
+				{
+					strncat(bufnew, nouveau_modeset_zero, l1);
+					strncat(bufnew, " ", 1);
+					strncat(bufnew, buffer + l, strlen(buffer + l));
+				}
+				
+			}
+			if ((fputs(bufnew, fpnew)) == EOF)
+			{
+				fprintf(stderr, "Can't write on file: /etc/default/grub.temp.nvidiaprime: %s (error %d)\n", strerror(errno), errno);
+				break;
+			}
+		}
+		else
+		{
+			if ((fputs(buffer, fpnew)) == EOF)
+			{
+				fprintf(stderr, "Can't write on file: /etc/default/grub.temp.nvidiaprime: %s (error %d)\n", strerror(errno), errno);
+				break;
+			}
+		}
+	}
+
+	fclose(fp);
+	fclose(fpnew);
+
+	if (!nouveau_nomodeset_already_installed)
+	{
+		if ((rename("/etc/default/grub.temp.nvidiaprime", "/etc/default/grub")) != 0)
+		{
+			fprintf(stderr, "Can't rename /etc/default/grub.temp.nvidiaprime to /etc/default/grub: %s (error %d)\n", strerror(errno), errno);
+			return(1);
+		}
+	}
+	else
+	{
+		/* discard modified file */
+		if ((ret = remove("/etc/default/grub.temp.nvidiaprime")) != 0)
+		{
+			fprintf(stderr, "Warning: Can't remove file /etc/default/grub.temp.nvidiaprime: %s (%d)\n", strerror(errno), errno);
+			return(1);
+		}	
+	}
+
+	return(0);
+}
+
+int grub_remove_nouveau_nomodeset()
+{
+	FILE *fp, *fpnew;
+	char buffer[BUFSIZ];
+	char bufnew[BUFSIZ+128];
+	const char *nouveau_modeset_zero = "nouveau.modeset=0 ";
+	const char *nouveau_modeset_zero_notrail = "nouveau.modeset=0";
+	const char *grub_cmdline_linux_default = "GRUB_CMDLINE_LINUX_DEFAULT=\"";
+	char *pos, *match;
+	size_t l, l1, l2;
+	
+	l = strlen(grub_cmdline_linux_default);
+	l1 = strlen(nouveau_modeset_zero);
+	l2 = strlen(nouveau_modeset_zero_notrail);
+	
+	/* work on a copy of /etc/default/grub */
+	if ((fcopy("/etc/default/grub", "/etc/default/grub.bak.nvidiaprime.removed")) != 0)
+	{
+		fprintf(stderr, "Can't copy /etc/default/grub to /etc/default/grub.temp.nvidiaprime.removed: %s (error: %d)\n", strerror(errno), errno);
+		return(1);
+	}
+	
+	if ((fp = fopen("/etc/default/grub.bak.nvidiaprime.removed", "r")) == NULL)
+	{
+		fprintf(stderr, "Can't open file /etc/default/grub.bak.nvidiaprime.removed: %s (error %d)\n", strerror(errno), errno);
+		return(1);
+	}
+	
+	if ((fpnew = fopen("/etc/default/grub.temp.nvidiaprime", "w")) == NULL)
+	{
+		fprintf(stderr, "Can't open file /etc/default/grub.temp.nvidiaprime");
+		fclose(fp);
+		return(1);
+	}
+	
+	while (fgets(buffer, sizeof(buffer), fp) != NULL)
+	{
+		*(bufnew) = '\0';
+		if ((pos = strstr(buffer, grub_cmdline_linux_default)))
+		{
+			strncpy(bufnew, buffer, l);
+			*(bufnew + l) = '\0';
+
+			if ((match = strstr(pos + l, nouveau_modeset_zero)))
+			{
+				strncat(bufnew, pos + l, match - (pos + l)); /* skip nouveau.modeset=0 */
+				strncat(bufnew, match + l1, strlen(match + l1));
+				
+			}
+			else if ((match = strstr(pos + l, nouveau_modeset_zero_notrail)))
+			{
+				strncat(bufnew, pos + l, match - (pos + l)); /* skip nouveau.modeset=0 */
+				strncat(bufnew, match + l2, strlen(match + l2));
+			}
+			else /* copy rest of the string */
+			{
+				strncat(bufnew, pos + l, strlen(pos + l));
+				
+			}
+			
+			if ((fputs(bufnew, fpnew)) == EOF)
+			{
+				fprintf(stderr, "Can't write on file: /etc/default/grub.temp.nvidiaprime: %s (error %d)\n", strerror(errno), errno);
+				break;
+			}
+		}
+		else /* copy buffer as is */
+		{
+			if ((fputs(buffer, fpnew)) == EOF)
+			{
+				fprintf(stderr, "Can't write on file: /etc/default/grub.temp.nvidiaprime: %s (error %d)\n", strerror(errno), errno);
+				break;
+			}
+		}
+	}
+
+	fclose(fp);
+	fclose(fpnew);
+
+	if ((rename("/etc/default/grub.temp.nvidiaprime", "/etc/default/grub")) != 0)
+	{
+		fprintf(stderr, "Can't rename /etc/default/grub.temp.nvidiaprime to /etc/default/grub: %s (error %d)\n", strerror(errno), errno);
+		return(1);
+	}
+	
+	return(0);
+}
+
 int main(int argc, char **argv)
 {
 	FILE *fp;
@@ -63,7 +268,11 @@ int main(int argc, char **argv)
 	int do_not_blacklist_nouveau = 0;
 	int is_xorg_free;
 	int is_xorg_to_restore = 0;
+	int use_dnf = 0;
 	int have_to_zap = 0;
+	int touch_grub = 0;
+	extern int nouveau_nomodeset_already_installed;
+	
 	long unsigned pcibus_intel = 0, pcidev_intel = 0, pcifunc_intel = 0;
 	long unsigned pcibus_nvidia = 0, pcidev_nvidia = 0, pcifunc_nvidia = 0;
 
@@ -78,18 +287,34 @@ int main(int argc, char **argv)
                 	{
                 		switch (opt)
                 		{
+                			case 'b': case 'B':
+                				if (argv[i][2] == '\0')
+                				{
+                					do_not_blacklist_nouveau = 1;
+                				}
+                				break;
+                				
+                			case 'd': case 'D':
+                				if (argv[i][2] == '\0')
+                				{
+                					use_dnf = 1;
+                				}
+                				break;
+					
+					case 'g': case 'G':
+						if (argv[i][2] == '\0')
+						{
+							touch_grub = 1;
+						}
+						break;
+
                 			case 'z': case 'Z':
                 				if (argv[i][2] == '\0')
                 				{
                 					have_to_zap = 1;
                 				}
                 				break;
-                			
-                			case 'b': case 'B':
-                				if (argv[i][2] == '\0')
-                				{
-                					do_not_blacklist_nouveau = 1;
-                				}	
+
 					default:
 						break;
                 		}
@@ -162,35 +387,33 @@ int main(int argc, char **argv)
 	{
 	    if ((fp = fopen("/etc/modprobe.d/00_mageia-prime.conf", "w")) == NULL)
 	    {
-	    	fprintf(stderr,"Warning: can't blacklist nouveau driver in /etc/modprobe.d/00_mageia_prime.conf\n");
+	    	fprintf(stderr,"Warning: can't blacklist nouveau driver in /etc/modprobe.d/00_mageia-prime.conf\n");
 	    	clean++;
 	    }
 	    else
 	    {
 	    	fprintf(fp, "blacklist nouveau\n");
-	    	fprintf(stderr, "Blacklisting nouveau kernel module in /etc/modprobe.d/00_mageia_prime.conf\n");
-	    	fprintf(stderr, "(shouldn't be enough, try toadd \'nouveau.modeset=0\' to your booting command line)\n");
+	    	fprintf(stderr, "Blacklisting nouveau kernel module in /etc/modprobe.d/00_mageia-prime.conf\n");
+	    	fprintf(stderr, "(shouldn't be enough, try toadd \'nouveau.modeset=0\', e.g. with option -g here, to your booting command line)\n");
 	    	fclose(fp);
+	    	
+	    	fprintf(stderr, "Regenerating kernel initrd images...");
+	    	if ((ret = system("/sbin/bootloader-config --action rebuild-initrds")) != 0)
+	    	{
+	    		fprintf(stderr, "failed!\n");
+	    		clean++;
+	    	}
+	    	else
+	    	{
+	    		fprintf(stderr, "done.\n");
+		}
 	    }
 	}
 
-	fprintf(stderr, "Ensuring the nonfree repo is enabled...");
-	if ((ret = system("/usr/bin/dnf --quiet config-manager --set-enabled mageia-$(rpm -E %distro_arch)-nonfree")) != 0)
+	if (use_dnf)
 	{
-		fprintf(stderr, "failed!\n");
-		clean++;
-	}
-	else
-	{
-		fprintf(stderr, "ok.\n");
-	}
-
-	fprintf(stderr, "Checking package dkms-nvidia-current...");
-	if ((ret = system("/bin/rpm --quiet -q dkms-nvidia-current")) != 0)
-	{
-		fprintf(stderr, "installing...");
-		
-		if ((ret = system("/usr/bin/dnf install dkms-nvidia-current")) != 0)
+		fprintf(stderr, "Ensuring the nonfree repo is enabled...");
+		if ((ret = system("/usr/bin/dnf --quiet config-manager --set-enabled mageia-$(rpm -E %distro_arch)-nonfree")) != 0)
 		{
 			fprintf(stderr, "failed!\n");
 			clean++;
@@ -198,6 +421,38 @@ int main(int argc, char **argv)
 		else
 		{
 			fprintf(stderr, "ok.\n");
+		}
+	}
+
+	fprintf(stderr, "Checking package dkms-nvidia-current...");
+	if ((ret = system("/bin/rpm --quiet -q dkms-nvidia-current")) != 0)
+	{
+		fprintf(stderr, "installing...");
+		
+		if (use_dnf)
+		{
+			if ((ret = system("/usr/bin/dnf install dkms-nvidia-current")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
+		}
+		else /* urpmi */
+		{
+			if ((ret = system("/usr/sbin/urpmi dkms-nvidia-current")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
+		
 		}
 	}
 	else
@@ -210,14 +465,29 @@ int main(int argc, char **argv)
 	{
 		fprintf(stderr, "installing...");
 		
-		if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
+		if (use_dnf)
 		{
-			fprintf(stderr, "failed!\n");
-			clean++;
+			if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
 		}
-		else
+		else /* urpmi */
 		{
-			fprintf(stderr, "ok.\n");
+			if ((ret = system("/usr/sbin/urpmi nvidia-current-cuda-opencl")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
 		}
 	}
 	else
@@ -230,14 +500,29 @@ int main(int argc, char **argv)
 	{
 		fprintf(stderr, "installing...");
 		
-		if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia-current")) != 0)
+		if (use_dnf)
 		{
-			fprintf(stderr, "failed!\n");
-			clean++;
+			if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia-current")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
 		}
-		else
+		else /* urpmi */
 		{
-			fprintf(stderr, "ok.\n");
+			if ((ret = system("/usr/sbin/urpmi x11-driver-video-nvidia-current")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
 		}
 	}
 	else
@@ -350,9 +635,9 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	
-	if ((fp = fopen("/etc/X11/xsetup.d/000nvidiaprime.xsetup", "w")) == NULL)
+	if ((fp = fopen("/etc/X11/xsetup.d/000mageia-prime.xsetup", "w")) == NULL)
 	{
-		fprintf(stderr, "Can't write to file /etc/X11/xsetup.d/000nvidia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
+		fprintf(stderr, "Can't write to file /etc/X11/xsetup.d/000mageia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
 	}
 	fprintf(fp, "# to be sourced\n"
@@ -362,13 +647,13 @@ int main(int argc, char **argv)
 	fclose(fp);
 
 	/* 493 is chmod 755 */
-	if ((chmod("/etc/X11/xsetup.d/000nvidiaprime.xsetup", 493)) < 0)
+	if ((chmod("/etc/X11/xsetup.d/000mageia-prime.xsetup", 493)) < 0)
 	{
-		fprintf(stderr, "Can't chmod 755 file /etc/X11/xsetup.d/000nvidiaprime.xsetup: %s (error %d)\n", strerror(errno), errno);
+		fprintf(stderr, "Can't chmod 755 file /etc/X11/xsetup.d/000mageia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
 	}
 
-	if ((fp = fopen("/etc/modules-load.d/nvidiaprime-drm.conf", "w")) == NULL)
+	if ((fp = fopen("/etc/modules-load.d/nvidia-prime-drm.conf", "w")) == NULL)
 	{
 		fprintf(stderr, "Can't create file /etc/modules-load.d/nvidia-prime-drm.conf: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
@@ -412,6 +697,33 @@ int main(int argc, char **argv)
 		clean++;
 	}
 
+	if (touch_grub)
+	{
+		fprintf(stderr, "Adding \"nouveau.modeset=0\" to grub2...");
+ 		if (grub_add_nouveau_nomodeset() != 0)
+ 		{
+ 			fprintf(stderr, "failed!\n");
+ 			clean++;
+		}
+		else
+			fprintf(stderr, "done.\n");
+		
+		
+		if (!nouveau_nomodeset_already_installed)
+		{
+			fprintf(stderr, "Updating grub.cfg...");
+			if ((ret = system("/usr/bin/update-grub")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "done.\n");
+			}
+		}
+	}
+
 	if (clean > 0)
 	{
 		fprintf(stderr, "Mageia-Prime for NVidia configured (with %d warnings)\n", clean);
@@ -426,6 +738,7 @@ int main(int argc, char **argv)
 			fprintf(stderr,"Mageia-Prime for NVidia reinstalled.\n");
 		
 	}
+
 
 	if (!have_to_zap)
 	{

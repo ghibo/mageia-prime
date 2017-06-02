@@ -51,6 +51,94 @@ int fcopy(char *name_src, char *name_dest)
 	return(0);
 }
 
+int grub_remove_nouveau_nomodeset()
+{
+	FILE *fp, *fpnew;
+	char buffer[BUFSIZ];
+	char bufnew[BUFSIZ+128];
+	const char *nouveau_modeset_zero = "nouveau.modeset=0 ";
+	const char *nouveau_modeset_zero_notrail = "nouveau.modeset=0";
+	const char *grub_cmdline_linux_default = "GRUB_CMDLINE_LINUX_DEFAULT=\"";
+	char *pos, *match;
+	size_t l, l1, l2;
+	
+	l = strlen(grub_cmdline_linux_default);
+	l1 = strlen(nouveau_modeset_zero);
+	l2 = strlen(nouveau_modeset_zero_notrail);
+	
+	/* work on a copy of /etc/default/grub */
+	if ((fcopy("/etc/default/grub", "/etc/default/grub.bak.nvidiaprime.removed")) != 0)
+	{
+		fprintf(stderr, "Can't copy /etc/default/grub to /etc/default/grub.temp.nvidiaprime.removed: %s (error: %d)\n", strerror(errno), errno);
+		return(1);
+	}
+	
+	if ((fp = fopen("/etc/default/grub.bak.nvidiaprime.removed", "r")) == NULL)
+	{
+		fprintf(stderr, "Can't open file /etc/default/grub.bak.nvidiaprime.removed: %s (error %d)\n", strerror(errno), errno);
+		return(1);
+	}
+	
+	if ((fpnew = fopen("/etc/default/grub.temp.nvidiaprime", "w")) == NULL)
+	{
+		fprintf(stderr, "Can't open file /etc/default/grub.temp.nvidiaprime");
+		fclose(fp);
+		return(1);
+	}
+	
+	while (fgets(buffer, sizeof(buffer), fp) != NULL)
+	{
+		*(bufnew) = '\0';
+		if ((pos = strstr(buffer, grub_cmdline_linux_default)))
+		{
+			strncpy(bufnew, buffer, l);
+			*(bufnew + l) = '\0';
+
+			if ((match = strstr(pos + l, nouveau_modeset_zero)))
+			{
+				strncat(bufnew, pos + l, match - (pos + l)); /* skip nouveau.modeset=0 */
+				strncat(bufnew, match + l1, strlen(match + l1));
+				
+			}
+			else if ((match = strstr(pos + l, nouveau_modeset_zero_notrail)))
+			{
+				strncat(bufnew, pos + l, match - (pos + l)); /* skip nouveau.modeset=0 */
+				strncat(bufnew, match + l2, strlen(match + l2));
+			}
+			else /* copy rest of the string */
+			{
+				strncat(bufnew, pos + l, strlen(pos + l));
+				
+			}
+			
+			if ((fputs(bufnew, fpnew)) == EOF)
+			{
+				fprintf(stderr, "Can't write on file: /etc/default/grub.temp.nvidiaprime: %s (error %d)\n", strerror(errno), errno);
+				break;
+			}
+		}
+		else /* copy buffer as is */
+		{
+			if ((fputs(buffer, fpnew)) == EOF)
+			{
+				fprintf(stderr, "Can't write on file: /etc/default/grub.temp.nvidiaprime: %s (error %d)\n", strerror(errno), errno);
+				break;
+			}
+		}
+	}
+
+	fclose(fp);
+	fclose(fpnew);
+
+	if ((rename("/etc/default/grub.temp.nvidiaprime", "/etc/default/grub")) != 0)
+	{
+		fprintf(stderr, "Can't rename /etc/default/grub.temp.nvidiaprime to /etc/default/grub: %s (error %d)\n", strerror(errno), errno);
+		return(1);
+	}
+	
+	return(0);
+}
+
 int main(int argc, char **argv)
 {
 	FILE *fp;
@@ -59,6 +147,8 @@ int main(int argc, char **argv)
 	int i;
 	int is_xorg_free;
 	int have_to_zap = 0;
+	int do_not_blacklist_nouveau = 0;
+	int touch_grub = 0;
 	
 	if ((uid = getuid()) != 0) {
 		fprintf(stderr, "Warning: you must run this command as root!\n\n");
@@ -76,12 +166,27 @@ int main(int argc, char **argv)
                 	{
                 		switch (opt)
                 		{
+                			case 'b': case 'B':
+                				if (argv[i][2] == '\0')
+                				{
+                					do_not_blacklist_nouveau = 1;
+                				}
+                				break;
+
                 			case 'z': case 'Z':
                 				if (argv[i][2] == '\0')
                 				{
                 					have_to_zap = 1;
                 				}
                 				break;
+
+					
+					case 'g': case 'G':
+						if (argv[i][2] == '\0')
+						{
+							touch_grub = 1;
+						}
+						break;
                 				
 					default:
 						break;
@@ -142,7 +247,7 @@ int main(int argc, char **argv)
 		/* system was xorg.conf free so we remove nvidia-prime config */
 		if ((ret = remove("/etc/X11/xorg.conf")) != 0)
 		{
-			fprintf(stderr, "Warning: Can't remove file/etc/X11/xorg.conf: %s (%d)\n", strerror(errno), errno);
+			fprintf(stderr, "Warning: Can't remove file /etc/X11/xorg.conf: %s (%d)\n", strerror(errno), errno);
 			clean++;
 		}	
 	}
@@ -154,14 +259,14 @@ int main(int argc, char **argv)
 		clean++;
 	}
 	
-	if ((ret = remove("/etc/X11/xsetup.d/000nvidiaprime.xsetup")) != 0)
+	if ((ret = remove("/etc/X11/xsetup.d/000mageia-prime.xsetup")) != 0)
 	{
-		fprintf(stderr, "Warning: Can't remove file /etc/X11/xsetup.d/000nvidiaprime.xsetup: %s (error %d)\n", strerror(errno), errno);
+		fprintf(stderr, "Warning: Can't remove file /etc/X11/xsetup.d/000mageia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
 		clean++;
 	}
 
 
-	if ((ret = remove("/etc/modules-load.d/nvidiaprime-drm.conf")) != 0)
+	if ((ret = remove("/etc/modules-load.d/nvidia-prime-drm.conf")) != 0)
 	{
 		fprintf(stderr, "Warning: Can't remove file /etc/modules-load.d/nvidia-prime-drm.conf: %s (error %d)\n", strerror(errno), errno);
 		clean++;
@@ -188,11 +293,48 @@ int main(int argc, char **argv)
 	if ((fp = fopen("/etc/modprobe.d/00_mageia-prime.conf", "r")) != NULL)
 	{
 		fclose(fp);
-		if ((ret = remove("/etc/modprobe.d/00_mageia-prime.conf")) != 0)
+		
+		if (!do_not_blacklist_nouveau)
 		{
-			fprintf(stderr, "Warning: Can't remove file /etc/modprobe.d/nvidia-prime-drm.conf: %s (error %d)\n", strerror(errno), errno);
+			if ((ret = remove("/etc/modprobe.d/00_mageia-prime.conf")) != 0)
+			{
+				fprintf(stderr, "Warning: Can't remove file /etc/modprobe.d/00_mageia-prime.conf: %s (error %d)\n", strerror(errno), errno);
+				clean++;
+			}
+		
+			fprintf(stderr, "Regenerating kernel initrd images...");
+			if ((ret = system("/sbin/bootloader-config --action rebuild-initrds")) != 0)
+			{
+	    			fprintf(stderr, "failed!\n");
+	    			clean++;
+			}
+		    	else
+		    	{
+	    			fprintf(stderr, "done.\n");
+			}
+		}
+	}
+
+	if (touch_grub)
+	{
+		fprintf(stderr, "Removing \"nouveau.modeset=0\" to grub2...");
+ 		if (grub_remove_nouveau_nomodeset() != 0)
+ 		{
+ 			fprintf(stderr, "failed!\n");
+ 			clean++;
+		}
+		else
+			fprintf(stderr, "done.\n");
+		
+		fprintf(stderr, "Updating grub.cfg...");
+		if ((ret = system("/usr/bin/update-grub")) != 0)
+		{
+			fprintf(stderr, "failed!\n");
 			clean++;
 		}
+		else
+			fprintf(stderr, "done.\n");
+
 	}
 
 	if (clean > 0)

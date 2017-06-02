@@ -1,3 +1,9 @@
+* 02 Jun 2017 - v0.4 - Merged patches for using dnf (from Neal Gompa).
+                     - Renamed 000nvidia-prime.xsetup instead to 000mgeia-prime.xsetup
+                     - Support initrd images rebuilding when blacklisting nouveau.
+		     - Add option to support nouveau.modeset=0 at boot command line, regenerating grub.cfg.
+		     - Improved documentation.
+
 * 23 May 2017 - v0.3 - Added option -b for not blacklisting nouveau.
 
 * 22 May 2017 - v0.2 - Added support for configurations without xorg.conf, blacklisting nouveau.

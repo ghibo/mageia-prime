@@ -1,5 +1,5 @@
 Name:		mageia-prime
-Version:	0.2
+Version:	0.4
 Release:	%mkrel 1
 Summary:	An NVidia Prime configuration tool
 Group:		Development/X11
@@ -11,6 +11,9 @@ Requires:	kmod
 Requires:	dnf
 Requires:	dnf-command(install)
 Requires:	dnf-command(config-manager)
+Requires:	urpmi
+Requires:	drakxtools-backend
+Requires:	grub2-common
 
 %description
 A tool for easily configuring NVidia Prime under Mageia GNU/Linux.
@@ -31,6 +34,12 @@ A tool for easily configuring NVidia Prime under Mageia GNU/Linux.
 %{_sbindir}/mageia-prime-uninstall
 
 %changelog
+* Fri Jun 02 2017 Giuseppe Ghibò <ghibo> 0.4-1.mga6
+- Release 0.4.
+
+* Fri May 23 2017 Giuseppe Ghibò <ghibo> 0.3-1.mga6
+- Release 0.3.
+
 * Mon May 22 2017 Giuseppe Ghibò <ghibo> 0.2-1.mga6
 - Release 0.2.
 

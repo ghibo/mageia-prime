@@ -38,11 +38,11 @@ one suitable for NVidia prime. The Mageia RPM packages for NVidia
 proprietary drivers should be already installed before issuing this
 command, otherwise mageia-prime-install will try to install them
 for you. After running such a command you need to restart the X11
-server or alternatively reboot the machine. After that the switch to
-the discrete card should be completed. At the next reboot or restart of X11,
-you can check that the GL libraries are coming from NVidia drivers. The
-utility "glxinfo" can be used for this purpose. A typical output of
-glxinfo with NVidia should contain:
+server or alternatively reboot the machine. After that, the switch to
+the discrete card should be completed. At the next reboot or restart of the
+X11 server, you can check that the GL libraries are really coming from
+NVidia drivers. The utility "glxinfo" can be used for this purpose. A typical
+output of glxinfo with NVidia would contain in this case:
 
 	OpenGL vendor string: NVIDIA Corporation
 	OpenGL renderer string: GeForce GTX 960M/PCIe/SSE2
@@ -64,9 +64,41 @@ should contain what follows:
     Accelerated: yes
     Video memory: 3072MB
 
-It exists also a command line argument to restart X11 automatically and
-is to invoke the mageia-prime-install/mageia-prime-uninstall with the
-option '-z' (zap). E.g.
+
+## Options
+There is a set of command line arguments to add several tasks during
+the installation (e.g. restart X11 automatically, etc.).
+
+
+### Option '-b' (do not blacklist nouveau)
+This option avoid the blacklisting of the nouveau driver
+and thus avoid to regenerate the initrd kernel images, e.g.:
+
+	/usr/sbin/mageia-prime-install -b
+
+and
+
+	/usr/sbin/mageia-prime-uninstall -b
+
+It's useful when used in conjunction with option -g.
+
+
+### Option '-g' (add nouveau.modeset=0 to boot command line)
+This option adds nouveau.modeset=0 to the kernel booting command line. Works
+only with grub2 (doesn't work with grub1). E.g. for installing, use:
+
+	/usr/sbin/mageia-prime-install -g
+
+and
+
+	/usr/sbin/mageia-prime-uninstall -g
+
+for uninstalling.
+
+
+### Option '-z' (zap):
+To quickly restart X11 automatically you can invoke the mageia-prime-install/mageia-prime-uninstall
+with the option '-z' (zap). E.g.
 
 	/usr/sbin/mageia-prime-install -z
 
@@ -74,26 +106,61 @@ or
 
 	/usr/sbin/mageia-prime-uninstall -z
 
-There is still one option to avoid blacklisting nouveau (e.g. in the case
-the nouveau kernel module is not automatically loaded or it was disabled at
-boot with nouveau.modeset=0):
 
-	/usr/bin/mageia-prime-install -b
+### Option '-d' (dnf):
+This option allows to use 'dnf' instead of 'urpmi' for installing the nvidia RPM package set.
+E.g.
+
+	/usr/sbin/mageia-prime-install -d
+
+
+### Examples
+With
+
+	/usr/sbin/mageia-prime-install -g -b
+
+you can switch to the NVidia drivers and permanently disable the nouveau
+driver at the next reboots. With:
+
+	/usr/sbin/mageia-prime-uninstall -b
+
+you can switch back to the Intel drivers, but without having to disable
+nouveau.modeset again. Then for subsequents switch you can use just:
+
+	/usr/sbin/mageia-prime-install -b -z
+
+for switching to NVidia and
+
+	/usr/sbin/mageia-prime-uninstall -b -z
+
+for switching back to Intel. In this way, in conjuction with '-z', you can
+quickly switch in/out/in/out from Nvidia to Intel drivers and viceversa,
+without having to regenerate the grub configuration or the initrd kernel
+images.
 
 
 ## Troubleshooting
 
-Sometimes it could happen that the nouveau opensource graphics driver
-interferes with the NVidia proprietary one, because its kernel module
-is automatically preloaded when an NVidia graphics card is detected by
-the kernel. This might results in some crashes or causing the
+As already mentioned above, sometimes, it could happen that the nouveau
+opensource graphics driver interferes with the NVidia proprietary one,
+because its kernel module is automatically preloaded when an NVidia graphics card is
+probed by the kernel. This might results in some crashes or causing the
 proprietary NVidia kernel module to not loading properly. To avoid
 this, you may disable the nouveau driver, by appending
 nouveau.modeset=0 to the booting command line, e.g. for grub2, editing
 the file /etc/default/grub and appending nouveau.modeset=0 to the
 GRUB_CMDLINE_LINUX_DEFAULT, and then regenerating grub.cfg (using
 grub2-mkconfig) as well as regenerating the initrd boot image with
-dracut.
+dracut. This operation is now automatically executed by the option '-g' of
+the installing and uninstalling stages.
+
+Sometimes you can get wrong DPI with NVidia drivers. If this happens,
+you can tune manually the DPI, uncommenting the lines:
+
+  #Option "UseEdidDpi" "false"
+  #Option "DPI" "96 x 96"
+
+(or your favourite DPI) in /etc/X11/xorg.conf.
 
 
 ## Notes
