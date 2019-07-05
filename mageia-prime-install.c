@@ -257,6 +257,41 @@ int grub_remove_nouveau_nomodeset()
 	return(0);
 }
 
+void choose_nvidia_version(char *result)
+{
+	FILE *fp;
+	char buffer[BUFSIZ];
+
+	result[0] = '\0';
+
+	fp = popen("/bin/lspcidrake -v | grep 'Card:NVIDIA'", "r");
+
+	if (fp == NULL) {
+		fprintf(stderr, "Can't run /bin/lspcidrake\n");
+		return;
+	}
+
+	while (fgets(buffer, sizeof(buffer), fp) != NULL)
+	{
+		if (strstr(buffer, "NVIDIA GeForce 420 to GeForce 630")) {
+			strcpy(result, "390");
+			break;
+		}
+
+		if (strstr(buffer, "NVIDIA GeForce 635 series and later")) {
+			strcpy(result, "-current");
+			break;
+		}
+	}
+
+	if (result[0] != '\0')
+	{
+		fprintf(stderr, "Driver that have to be used: nvidia%s", result);
+	}
+
+	pclose(fp);
+}
+
 int main(int argc, char **argv)
 {
 	FILE *fp;
@@ -275,6 +310,9 @@ int main(int argc, char **argv)
 	
 	long unsigned pcibus_intel = 0, pcidev_intel = 0, pcifunc_intel = 0;
 	long unsigned pcibus_nvidia = 0, pcidev_nvidia = 0, pcifunc_nvidia = 0;
+
+	char nv_driver_ver[9];
+	char command[BUFSIZ];
 
 	/* scan arguments */
         for (i = 1; i < argc; i++)
@@ -424,14 +462,23 @@ int main(int argc, char **argv)
 		}
 	}
 
-	fprintf(stderr, "Checking package dkms-nvidia-current...");
-	if ((ret = system("/bin/rpm --quiet -q dkms-nvidia-current")) != 0)
+	choose_nvidia_version(nv_driver_ver);
+
+	if (nv_driver_ver[0] == '\0')
+	{
+		exit(1);
+	}
+
+	fprintf(stderr, "Checking package dkms-nvidia%s...", nv_driver_ver);
+	sprintf(command, "/bin/rpm --quiet -q dkms-nvidia%s", nv_driver_ver);
+	if ((ret = system(command)) != 0)
 	{
 		fprintf(stderr, "installing...");
 		
 		if (use_dnf)
 		{
-			if ((ret = system("/usr/bin/dnf install dkms-nvidia-current")) != 0)
+			sprintf(command, "/usr/bin/dnf install dkms-nvidia%s", nv_driver_ver);
+			if ((ret = system(command)) != 0)
 			{
 				fprintf(stderr, "failed!\n");
 				clean++;
@@ -443,7 +490,8 @@ int main(int argc, char **argv)
 		}
 		else /* urpmi */
 		{
-			if ((ret = system("/usr/sbin/urpmi dkms-nvidia-current")) != 0)
+			sprintf(command, "/usr/sbin/urpmi dkms-nvidia%s", nv_driver_ver);
+			if ((ret = system(command)) != 0)
 			{
 				fprintf(stderr, "failed!\n");
 				clean++;
@@ -460,14 +508,16 @@ int main(int argc, char **argv)
 		fprintf(stderr, "already installed.\n");
 	}
 
-	fprintf(stderr, "Checking package nvidia-current-cuda-opencl...");
-	if ((ret = system("/bin/rpm --quiet -q nvidia-current-cuda-opencl")) != 0)
+	fprintf(stderr, "Checking package nvidia%s-cuda-opencl...", nv_driver_ver);
+	sprintf(command, "/bin/rpm --quiet -q nvidia%s-cuda-opencl", nv_driver_ver);
+	if ((ret = system(command)) != 0)
 	{
 		fprintf(stderr, "installing...");
 		
 		if (use_dnf)
 		{
-			if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
+			sprintf(command, "/usr/bin/dnf install nvidia%s-cuda-opencl", nv_driver_ver);
+			if ((ret = system(command)) != 0)
 			{
 				fprintf(stderr, "failed!\n");
 				clean++;
@@ -479,7 +529,8 @@ int main(int argc, char **argv)
 		}
 		else /* urpmi */
 		{
-			if ((ret = system("/usr/sbin/urpmi nvidia-current-cuda-opencl")) != 0)
+			sprintf(command, "/usr/sbin/urpmi nvidia%s-cuda-opencl", nv_driver_ver);
+			if ((ret = system(command)) != 0)
 			{
 				fprintf(stderr, "failed!\n");
 				clean++;
@@ -495,14 +546,16 @@ int main(int argc, char **argv)
 		fprintf(stderr, "already installed.\n");
 	}
 
-	fprintf(stderr, "Checking package x11-driver-video-nvidia-current...");
-	if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia-current")) != 0)
+	fprintf(stderr, "Checking package x11-driver-video-nvidia%s...", nv_driver_ver);
+	sprintf(command, "/bin/rpm --quiet -q x11-driver-video-nvidia%s", nv_driver_ver);
+	if ((ret = system(command)) != 0)
 	{
 		fprintf(stderr, "installing...");
 		
 		if (use_dnf)
 		{
-			if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia-current")) != 0)
+			sprintf(command, "/usr/bin/dnf install x11-driver-video-nvidia%s", nv_driver_ver);
+			if ((ret = system(command)) != 0)
 			{
 				fprintf(stderr, "failed!\n");
 				clean++;
@@ -514,7 +567,8 @@ int main(int argc, char **argv)
 		}
 		else /* urpmi */
 		{
-			if ((ret = system("/usr/sbin/urpmi x11-driver-video-nvidia-current")) != 0)
+			sprintf(command, "/usr/sbin/urpmi x11-driver-video-nvidia%s", nv_driver_ver);
+			if ((ret = system(command)) != 0)
 			{
 				fprintf(stderr, "failed!\n");
 				clean++;
@@ -663,7 +717,8 @@ int main(int argc, char **argv)
 	fclose(fp);
 	
 	fprintf(stderr, "Switching to NVidia GL libraries...");
-	if ((ret = system("/usr/sbin/update-alternatives --set gl_conf /etc/nvidia-current/ld.so.conf")) != 0)
+	sprintf(command, "/usr/sbin/update-alternatives --set gl_conf /etc/nvidia%s/ld.so.conf", nv_driver_ver);
+	if ((ret = system(command)) != 0)
 	{
 		fprintf(stderr, "Warning: failed to run update-alternatives --set gl_conf...\n");
 		clean++;
