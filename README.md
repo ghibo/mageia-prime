@@ -1,34 +1,34 @@
 # Mageia-Prime
 
 This tool allows you to easily configure NVidia Prime for using the
-discrete graphics card with the NVidia proprietary drivers within the
-Mageia GNU/Linux distribution.
+discrete graphics card of a laptop with the NVidia proprietary drivers
+for the Mageia GNU/Linux distribution.
 
 Most of nowadays laptops have a graphic subsystem called
-"Hybrid-Graphics", i.e they come with two graphics cards: one is
-usually "internal" (or "integrated") into the CPU, and is called IGP
+"Hybrid-Graphics", in other words they come with two graphics cards: one is
+"internal" (or "*integrated*" into the CPU), and is called IGP
 (Integrated Graphic Processor), and the other is "dedicated", external
-to the CPU, and it is called "discrete" (DGP, Discrete/Dedicated
+to the CPU, and it is called "*discrete*" (DGP, Discrete/Dedicated
 Graphics Processor).
 
-So a typical laptop configuration could have two cards: an internal Intel
-graphics card (e.g.  Intel HD Graphics 530), and a discrete NVidia
-graphics card (e.g.  NVidia GeForce GTX 960M), even though other
-configurations could be also possible.
+So a typical laptop configuration could have two cards: one internal, usually an
+Intel graphics card (e.g. Intel HD Graphics 530), and another discrete, typical
+an NVidia graphics card (e.g. NVidia GeForce GTX 960M), though other
+configurations are possible.
 
-The default X11 installation is typically using the internal graphics
-card, which is usually slower (though it consumes less energy power) than
-the discrete one. Other ways to access to the discrete graphics card with
-the proprietary drivers includes to "mix" the output of both (integrated
-and discrete) cards into a single one: this is the case of
-using "bumblebee" under Linux. Unfortunately for NVidia discrete cards this
-will result, sometimes, in getting slower performance than the
-internal one.
+The default X11 server installation is typically using the internal Intel
+graphics card, which is usually slower (but consumes less energy) than the
+discrete one. Other softwares to access to the discrete
+graphics card with the proprietary drivers use to "mix" the
+output of both (integrated and discrete) cards into a single one: this
+is the case of using the Linux utility "*bumblebee*". However this latter
+method could result, sometimes, in getting slower performance than the native
+internal graphics card.
 
 
 ## Usage:
 
-To configure the NVidia graphics card with Prime, run (as root) the
+To **configure** the NVidia graphics card with Prime, run (as root) the
 following command:
 
 	/usr/sbin/mageia-prime-install
@@ -36,86 +36,118 @@ following command:
 this will switch the default configuration in /etc/X11/xorg.conf to
 one suitable for NVidia prime. The Mageia RPM packages for NVidia
 proprietary drivers should be already installed before issuing this
-command, otherwise mageia-prime-install will try to install them
-for you. After running such a command you need to restart the X11
-server or alternatively reboot the machine. After that, the switch to
-the discrete card should be completed. At the next reboot or restart of the
-X11 server, you can check that the GL libraries are really coming from
-NVidia drivers. The utility "glxinfo" can be used for this purpose. A typical
-output of glxinfo with NVidia would contain in this case:
+command, otherwise mageia-prime-install will install the required
+packages for you. After running such command you need to restart the
+X11 server or alternatively reboot the machine. At this point the
+switch to the discrete card it is completed. At the next reboot or
+the subsequent restart of the X11 server, you can check that the GL
+libraries are really coming from NVidia drivers. The command "`glxinfo
+-B`" can be used for this purpose. A typical output of glxinfo with
+NVidia drivers would contain the following entries:
 
-	OpenGL vendor string: NVIDIA Corporation
-	OpenGL renderer string: GeForce GTX 960M/PCIe/SSE2
-	OpenGL core profile version string: 4.5.0 NVIDIA 375.66
-	OpenGL core profile shading language version string: 4.50 NVIDIA
+    OpenGL vendor string: NVIDIA Corporation
+    OpenGL renderer string: GeForce GTX 960M/PCIe/SSE2
+    OpenGL core profile version string: 4.6.0 NVIDIA 460.39
+    OpenGL core profile shading language version string: 4.60 NVIDIA
 
-To unconfigure the Nvidia Prime and then switch back to the previous
-configuration, just run (as root):
+To "unconfigure" the NVidia graphics card and then switch back to the
+previous configuration, just run (as root):
 
 	/usr/sbin/mageia-prime-uninstall
 
-As before, after the next reboot, the glxinfo will show you are back to
-the Mesa DRI accelerated drivers; a typical output of glxinfo, in this case,
+At the next reboot, the `glxinfo` command will tell you that are you are back to
+the Mesa DRI accelerated drivers; a typical output of `glxinfo`, in this case,
 should contain what follows:
 
     Vendor: Intel Open Source Technology Center (0x8086)
     Device: Mesa DRI Intel(R) HD Graphics 530 (Skylake GT2)  (0x191b)
-    Version: 17.0.5
+    Version: 20.3.4
     Accelerated: yes
     Video memory: 3072MB
 
+Note that mageia-prime can also work without any prepared `xorg.conf` file
+(basically it will be used an automatic configuration). This particular configuration can be
+achieved using the option '`-a`', e.g.:
+
+    mageia-prime-install -a
+
+This can be used for instance when none of the standard configurations would work.
 
 ## Options
-There is a set of command line arguments to add several tasks during
-the installation (e.g. restart X11 automatically, etc.).
+There are some command line options to execute further tasks during
+the installation (e.g. restart X11 automatically, etc.). Let's see them:
 
+### Option '-a' (automatic xorg.conf)
+Use this option to run Xorg with an empty `/etc/X11/xorg.conf` file. In
+this way an automatic configuration would be used (with the priority
+to the NVidia card).
 
 ### Option '-b' (do not blacklist nouveau)
 This option avoid the blacklisting of the nouveau driver
 and thus avoid to regenerate the initrd kernel images, e.g.:
 
-	/usr/sbin/mageia-prime-install -b
+    /usr/sbin/mageia-prime-install -b
 
 and
 
-	/usr/sbin/mageia-prime-uninstall -b
+    /usr/sbin/mageia-prime-uninstall -b
 
-It's useful when used in conjunction with option -g.
+It's useful when used in conjunction with option `-g`.
 
 
 ### Option '-g' (add nouveau.modeset=0 to boot command line)
-This option adds nouveau.modeset=0 to the kernel booting command line. Works
-only with grub2 (doesn't work with grub1). E.g. for installing, use:
+This option adds `nouveau.modeset=0` to the kernel booting command line. It works
+only with grub2 (doesn't work with grub1, if you still have  it installed). E.g. use:
 
 	/usr/sbin/mageia-prime-install -g
 
-and
+for configuring the NVidia prime and for adding `nouveau.modeset=0` to `/etc/default/grub`. And use:
 
 	/usr/sbin/mageia-prime-uninstall -g
 
-for uninstalling.
+for removing such argument.
 
+### Option '-p' (prime-offload)
+Use this option for configuring the X11 server with the Intel
+*integrated* graphics card, but to allow the *NVidia prime rendering offload*,
+i.e. to use the NVidia GPU for doing the screen rendering. For this purpose
+you have to set the environment variables `__NV_PRIME_RENDER_OFFLOAD=1` and `__GLX_VENDOR_LIBRARY_NAME=nvidia` before invoking the corresponding application.
+As alternative you might use the provided wrapper script `mageia-prime-offload-run`; e.g.:
+
+    mageia-prime-offload-run glmark2
+
+    mageia-prime-offload-run <some cuda program>
+
+This is similar to use *bumblebee*'s `optirun`.
 
 ### Option '-z' (zap):
-To quickly restart X11 automatically you can invoke the mageia-prime-install/mageia-prime-uninstall
-with the option '-z' (zap). E.g.
+To quickly restart the X11 server automatically after the card switching, you can invoke the `mageia-prime-install` and `mageia-prime-uninstall` commands with the option '`-z`' (*zap*). E.g.:
 
 	/usr/sbin/mageia-prime-install -z
 
-or
+to configure NVidia Prime and then automatically restart Xorg; for unconfiguring (i.e. to switch back to the Intel drivers), just use:
 
 	/usr/sbin/mageia-prime-uninstall -z
 
+Note that mageia-prima-uninstall just switches back to the Intel graphics adapter, and won't take care of removing the installed proprietary NVidia RPM packages. The same commands can be run in with the '`-a`' option for an Xorg automatic configuration, e.g. to quickly switch to the NVidia card with the automatic configuration, use:
+
+       /usr/sbin/mageia-prime-install -a -z
+
+and then
+
+       /usr/bin/mageia-prime-uninstall -a -z
+
+to switch back to the Intel one.
 
 ### Option '-d' (dnf):
-This option allows to use 'dnf' instead of 'urpmi' for installing the nvidia RPM package set.
-E.g.
+This option allows to use '`dnf`' instead of '`urpmi`' for installing the
+required NVidia proprietary RPM package set. E.g.:
 
 	/usr/sbin/mageia-prime-install -d
 
 
 ### Examples
-With
+With:
 
 	/usr/sbin/mageia-prime-install -g -b
 
@@ -125,7 +157,7 @@ driver at the next reboots. With:
 	/usr/sbin/mageia-prime-uninstall -b
 
 you can switch back to the Intel drivers, but without having to disable
-nouveau.modeset again. Then for subsequents switch you can use just:
+nouveau.modeset again. So,for subsequents switches you can just use:
 
 	/usr/sbin/mageia-prime-install -b -z
 
@@ -134,68 +166,60 @@ for switching to NVidia and
 	/usr/sbin/mageia-prime-uninstall -b -z
 
 for switching back to Intel. In this way, in conjuction with '-z', you can
-quickly switch in/out/in/out from Nvidia to Intel drivers and viceversa,
-without having to regenerate the grub configuration or the initrd kernel
+quickly switch back and forth from NVidia to Intel drivers and viceversa,
+without having to regenerate the grub configuration files or the initrd kernel
 images.
 
 
 ## Troubleshooting
 
-As already mentioned above, sometimes, it could happen that the nouveau
-opensource graphics driver interferes with the NVidia proprietary one,
-because its kernel module is automatically preloaded when an NVidia graphics card is
-probed by the kernel. This might results in some crashes or causing the
-proprietary NVidia kernel module to not loading properly. To avoid
-this, you may disable the nouveau driver, by appending
-nouveau.modeset=0 to the booting command line, e.g. for grub2, editing
-the file /etc/default/grub and appending nouveau.modeset=0 to the
-GRUB_CMDLINE_LINUX_DEFAULT, and then regenerating grub.cfg (using
-grub2-mkconfig) as well as regenerating the initrd boot image with
-dracut. This operation is now automatically executed by the option '-g' of
-the installing and uninstalling stages.
+As already mentioned above, sometimes, it could happen that the
+nouveau opensource graphics driver interferes with the NVidia
+proprietary one, because its kernel module is automatically preloaded
+when an NVidia graphics card is probed by the kernel. Sometimes this might happen
+at the very early stage of kernel boot, long before the blacklisting commands of
+`/etc/modules.d` can intervene. This might results in some crashes or causing the proprietary NVidia kernel modules to not being properly loaded. To avoid this situation, you may disable the
+nouveau driver at kernel boot, using the following procedure:
+
+* Edit (for grub2) the file `/etc/default/grub` and append `nouveau.modeset=0` to the GRUB_CMDLINE_LINUX_DEFAULT
+* Regenerate the `grub.cfg` using `update-grub2`
+* Regenerate the initrd boot image with `dracut -f`
+
+All these steps are now automatically executed by the option '`-g`' at the mageia-prime installing and uninstalling stages.
 
 Sometimes you can get wrong DPI with NVidia drivers. If this happens,
-you can tune manually the DPI, uncommenting the lines:
+you can manually tune the DPI, uncommenting the lines:
 
-  #Option "UseEdidDpi" "false"
-  #Option "DPI" "96 x 96"
+    #Option "UseEdidDpi" "false"
+    #Option "DPI" "96 x 96"
 
-(or your favourite DPI) in /etc/X11/xorg.conf.
+(or replace with the true "*dots per inch*" value of your display) in `/etc/X11/xorg.conf`.
 
 
 ## Notes
 
-Once Mageia-Prime is installed, the NVidia card will be accessed as
-any other desktop native NVidia graphic card. This means
-that you can use all the other NVidia proprietary utilies, such as,
-"nvidia-settings", to control the internal card parameters or change the
-thermal profiles between Adaptive and Maximum Performance, as well as
-checking the internal temperature. Also other utilities, like "The CUDA
-Toolkit", or "CUDA-Z" would work. Note that the performance boost
-of the NVidia card will be achieved at expense of the battery, which
-will probably last shorter, according to the same initial
-amount of charge (no problems if you are attached to the PSU).
-
+Once mageia-prime is installed, the NVidia card of your laptop will be accessed in a way similar any other desktop native NVidia graphic card. This means that you can use all the other NVidia proprietary utilities, such as, `nvidia-settings`, to control the NVidia card parameters or to change the thermal profiles between *Adaptive* and *Maximum Performance*, as well as checking the internal
+temperatures. Also other utilities, like *The CUDA Toolkit*, or `cuda-z` would work.
 
 
 ## Benchmarking
 
-Users can test the performance using the following benchmarking
-utilities: glxspheres64 and glmark2, respectively contained in the
-packages: virtualgl and glmark2 and both available for Mageia Linux.
+Users can test the performances using the following benchmarking
+utilities: `gxspheres64`, `glxgears` and `glmark2`, respectively contained in the
+packages: `virtualgl`, `mesa-demos` and `glmark2`, all availables in Mageia Linux.
 
 A typical usage is this:
 
-* glmark2
-* vblank_mode=0 glxsphere64
-* glmark2-software --off-screen (only under DRI + Mesa with Intel
-configured as graphics card).
+* `$ glmark2`
+* `$ vblank_mode=0 __GL_SYNC_TO_VBLANK=0 glxsphere64`
+* `$ vblank_mode=0 __GL_SYNC_TO_VBLANK=0 glxgears`
+* `$ glmark2-software --off-screen` (only under DRI + Mesa with Intel configured as graphics card).
 
-While, typical benchmarking values are:
+Typical results for these benchmarks are:
 
 * glmark2 with Intel HD Graphics 530: score 2457
 
-* glmark2 with NVidia GTX 960M: score 6120
+* glmark2 with NVidia GTX 960M: score 6339
 
 * glmark2-software with Gallium on LLVM pipe and Intel 6700HQ: score 740
 

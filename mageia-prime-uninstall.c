@@ -197,7 +197,7 @@ int main(int argc, char **argv)
 
 	if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime", "r")) == NULL)
 	{
-		fprintf(stderr,"Error: It seems Mageia-Prime was not configured.\nYou have to invoke mageia-prime-install before.\n");
+		fprintf(stderr,"Error: It seems mageia-prime was not configured.\nYou have to invoke mageia-prime-install before.\n");
 		exit(1);
 	}
 	
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
 	{	
 		if ((fp = fopen("/etc/X11/xorg.conf.bak.beforenvidiaprime", "r")) == NULL)
 		{
-			fprintf(stderr,"Error: It seems Mageia-Prime was never configured, can't restore previous configuration!\n");
+			fprintf(stderr,"Error: It seems mageia-prime was never configured, can't restore previous configuration!\n");
 			fprintf(stderr,"You have to invoke mageia-prime-install before.\n");
 			exit(1);
 		}
@@ -259,12 +259,23 @@ int main(int argc, char **argv)
 		clean++;
 	}
 	
-	if ((ret = remove("/etc/X11/xsetup.d/000mageia-prime.xsetup")) != 0)
+	if ((ret = remove("/etc/X11/xorg.conf.d/20-mageia-prime.conf")) != 0)
 	{
-		fprintf(stderr, "Warning: Can't remove file /etc/X11/xsetup.d/000mageia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
+		fprintf(stderr, "Warning: Can't remove file /etc/X11/xorg.conf.d/20-mageia-prime.conf: %s (error %d)\n", strerror(errno), errno);
 		clean++;
 	}
 
+	if ((ret = remove("/etc/X11/xinit.d/00mageia-prime.xinit")) != 0)
+	{
+		fprintf(stderr, "Warning: Can't remove file /etc/X11/xinit.d/00mageia-prime.xinit: %s (error %d)\n", strerror(errno), errno);
+		clean++;
+	}
+
+	if ((ret = remove("/etc/X11/xsetup.d/00mageia-prime.xsetup")) != 0)
+	{
+		fprintf(stderr, "Warning: Can't remove file /etc/X11/xsetup.d/00mageia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
+		clean++;
+	}
 
 	if ((ret = remove("/etc/modules-load.d/nvidia-prime-drm.conf")) != 0)
 	{
@@ -343,13 +354,16 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		fprintf(stderr, "Mageia-Prime uninstalled and old configuration restored. Please restart X11 or reboot.\n");
+		fprintf(stderr, "mageia-prime uninstalled and old configuration restored. Please restart X11 or reboot.\n");
 	}
 
 	if (have_to_zap)
 	{
 		fprintf(stderr,"Zapping X11.\n");
-		system("systemctl restart prefdm.service");
+		if ((ret = system("/bin/systemctl restart display-manager.service")) != 0)
+		{
+			fprintf(stderr, "Warning: Can't restart display-manager.service: %s (error %d)\n", strerror(errno), errno);
+		}
 	}
 
 	return(0);

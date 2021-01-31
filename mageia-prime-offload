@@ -1,0 +1,8 @@
+#!/usr/bin/sh
+/usr/bin/xrandr --setprovideroutputsource modesetting NVIDIA-0
+/usr/bin/xrandr --auto
+xrandr_output=$(xrandr -q | grep -i -E -e "eDP|LVDS" | head -n 1 | cut -d " " -f 1)
+if [ ! -z ${xrandr_output} ]; then
+	xrandr --output "${xrandr_output}" --off
+	xrandr --output "${xrandr_output}" --auto
+fi

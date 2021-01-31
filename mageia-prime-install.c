@@ -271,6 +271,10 @@ int main(int argc, char **argv)
 	int use_dnf = 0;
 	int have_to_zap = 0;
 	int touch_grub = 0;
+	int use_xorg_auto = 0; /* set to 1 for an empty/automatic xorg.conf file */
+	int use_xorg_prime_offload = 0; /* set to 1 to use prime rendering offloading */
+	int use_nvidia_current = 1;
+	int use_nvidia_390 = 0;
 	extern int nouveau_nomodeset_already_installed;
 	
 	long unsigned pcibus_intel = 0, pcidev_intel = 0, pcifunc_intel = 0;
@@ -287,6 +291,21 @@ int main(int argc, char **argv)
                 	{
                 		switch (opt)
                 		{
+                			case '3':
+                				if (argv[i][2] == '\0')
+                				{
+                					use_nvidia_390 = 1;
+                					use_nvidia_current = 0;
+						}
+						break;
+                			case 'a': case 'A':
+                				if (argv[i][2] == '\0')
+						{
+                					use_xorg_auto = 1;
+                					use_xorg_prime_offload = 0;
+						}
+						break;
+
                 			case 'b': case 'B':
                 				if (argv[i][2] == '\0')
                 				{
@@ -305,6 +324,14 @@ int main(int argc, char **argv)
 						if (argv[i][2] == '\0')
 						{
 							touch_grub = 1;
+						}
+						break;
+					
+					case 'p': case 'P':
+						if (argv[i][2] == '\0' )
+						{
+							use_xorg_prime_offload = 1;
+							use_xorg_auto = 0;
 						}
 						break;
 
@@ -327,7 +354,7 @@ int main(int argc, char **argv)
 		clean++;
 	}
 
-	/* TODO: it would be better to use libpciaccess instead of popen()/pclose(), more elegant */
+	/* TODO: use libpciaccess instead of popen()/pclose() */
 	fp = popen("/bin/lspci | grep -E '3D|VGA'", "r");
 
 	if (fp == NULL) {
@@ -393,8 +420,11 @@ int main(int argc, char **argv)
 	    else
 	    {
 	    	fprintf(fp, "blacklist nouveau\n");
-	    	fprintf(stderr, "Blacklisting nouveau kernel module in /etc/modprobe.d/00_mageia-prime.conf\n");
-	    	fprintf(stderr, "(shouldn't be enough, try toadd \'nouveau.modeset=0\', e.g. with option -g here, to your booting command line)\n");
+	    	fprintf(fp, "options nouveau modeset=0\n");
+	    	fprintf(fp, "alias nouveau off\n");
+	    	fprintf(fp, "options nvidia-drm modeset=1\n");
+	    	fprintf(fp, "options nvidia NVreg_DynamicPowerManagement=0x02\n");
+	    	fprintf(stderr, "Blacklisted nouveau kernel module in /etc/modprobe.d/00_mageia-prime.conf\n");
 	    	fclose(fp);
 	    	
 	    	fprintf(stderr, "Regenerating kernel initrd images...");
@@ -423,43 +453,84 @@ int main(int argc, char **argv)
 			fprintf(stderr, "ok.\n");
 		}
 	}
-
-	fprintf(stderr, "Checking package dkms-nvidia-current...");
-	if ((ret = system("/bin/rpm --quiet -q dkms-nvidia-current")) != 0)
+	
+	if (use_nvidia_current && !use_nvidia_390)
 	{
-		fprintf(stderr, "installing...");
-		
-		if (use_dnf)
+		fprintf(stderr, "Checking package dkms-nvidia-current...");
+		if ((ret = system("/bin/rpm --quiet -q dkms-nvidia-current")) != 0)
 		{
-			if ((ret = system("/usr/bin/dnf install dkms-nvidia-current")) != 0)
+			fprintf(stderr, "installing...");
+
+			if (use_dnf)
 			{
-				fprintf(stderr, "failed!\n");
-				clean++;
+				if ((ret = system("/usr/bin/dnf install dkms-nvidia-current")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
 			}
-			else
+			else /* urpmi */
 			{
-				fprintf(stderr, "ok.\n");
+				if ((ret = system("/usr/sbin/urpmi --auto dkms-nvidia-current")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+					}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
 			}
 		}
-		else /* urpmi */
+		else
 		{
-			if ((ret = system("/usr/sbin/urpmi dkms-nvidia-current")) != 0)
-			{
-				fprintf(stderr, "failed!\n");
-				clean++;
-			}
-			else
-			{
-				fprintf(stderr, "ok.\n");
-			}
-		
+			fprintf(stderr, "already installed.\n");
 		}
 	}
-	else
+	else if (use_nvidia_390 && !use_nvidia_current)
 	{
-		fprintf(stderr, "already installed.\n");
+		fprintf(stderr, "Checking package dkms-nvidia390...");
+		if ((ret = system("/bin/rpm --quiet -q dkms-nvidia390")) != 0)
+		{
+			fprintf(stderr, "installing...");
+
+			if (use_dnf)
+			{
+				if ((ret = system("/usr/bin/dnf install dkms-nvidia390")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
+			}
+			else /* urpmi */
+			{
+				if ((ret = system("/usr/sbin/urpmi --auto dkms-nvidia390")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+					}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
+			}
+		}
+		else
+		{
+			fprintf(stderr, "already installed.\n");
+		}
 	}
 
+if (use_nvidia_current && !use_nvidia_390)
+{
 	fprintf(stderr, "Checking package nvidia-current-cuda-opencl...");
 	if ((ret = system("/bin/rpm --quiet -q nvidia-current-cuda-opencl")) != 0)
 	{
@@ -479,7 +550,7 @@ int main(int argc, char **argv)
 		}
 		else /* urpmi */
 		{
-			if ((ret = system("/usr/sbin/urpmi nvidia-current-cuda-opencl")) != 0)
+			if ((ret = system("/usr/sbin/urpmi --auto nvidia-current-cuda-opencl")) != 0)
 			{
 				fprintf(stderr, "failed!\n");
 				clean++;
@@ -494,7 +565,47 @@ int main(int argc, char **argv)
 	{
 		fprintf(stderr, "already installed.\n");
 	}
+}
+else if (use_nvidia_390 && !use_nvidia_current)
+{
+	fprintf(stderr, "Checking package nvidia390-cuda-opencl...");
+	if ((ret = system("/bin/rpm --quiet -q nvidia390-cuda-opencl")) != 0)
+	{
+		fprintf(stderr, "installing...");
+		
+		if (use_dnf)
+		{
+			if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
+		}
+		else /* urpmi */
+		{
+			if ((ret = system("/usr/sbin/urpmi --auto nvidia390-cuda-opencl")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
+		}
+	}
+	else
+	{
+		fprintf(stderr, "already installed.\n");
+	}
+}
 
+if (use_nvidia_current && !use_nvidia_390)
+{
 	fprintf(stderr, "Checking package x11-driver-video-nvidia-current...");
 	if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia-current")) != 0)
 	{
@@ -514,7 +625,7 @@ int main(int argc, char **argv)
 		}
 		else /* urpmi */
 		{
-			if ((ret = system("/usr/sbin/urpmi x11-driver-video-nvidia-current")) != 0)
+			if ((ret = system("/usr/sbin/urpmi --auto x11-driver-video-nvidia-current")) != 0)
 			{
 				fprintf(stderr, "failed!\n");
 				clean++;
@@ -529,6 +640,44 @@ int main(int argc, char **argv)
 	{
 		fprintf(stderr, "already installed.\n");
 	}
+}
+else if (use_nvidia_390 && !use_nvidia_current)
+{
+	fprintf(stderr, "Checking package x11-driver-video-nvidia390...");
+	if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia390")) != 0)
+	{
+		fprintf(stderr, "installing...");
+		
+		if (use_dnf)
+		{
+			if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia390")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
+		}
+		else /* urpmi */
+		{
+			if ((ret = system("/usr/sbin/urpmi --auto x11-driver-video-nvidia390")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "ok.\n");
+			}
+		}
+	}
+	else
+	{
+		fprintf(stderr, "already installed.\n");
+	}
+}
 	
 	if ((fp = fopen("/etc/X11/xorg.conf", "r")) == NULL)
 	{
@@ -552,7 +701,7 @@ int main(int argc, char **argv)
 	
 	if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime", "r")) != NULL)
 	{
-		fprintf(stderr, "\nIt seems Mageia-Prime was already configured, manually delete the file /etc/X11/xorg.conf.nvidiaprime or unconfigure with mageia-prime-uninstall if you want to continue\n");
+		fprintf(stderr, "\nIt seems mageia-prime was already configured, please unconfigure running mageia-prime-uninstall or manually delete the file /etc/X11/xorg.conf.nvidiaprime\n");
 		fclose(fp);
 		exit(1);
 	}
@@ -567,40 +716,114 @@ int main(int argc, char **argv)
 
 		fprintf(fp,"#\n"
 	           	   "# automatically generated by mageia-prime-install\n"
-	           	   "# for running NVidia Prime on Mageia GNU/Linux OS\n"
-	           	   "#\n"
-	           	   "Section \"ServerLayout\"\n"
+	           	   "#\n");
+		if ((!use_xorg_auto) && (!use_xorg_prime_offload))
+		{
+			fprintf(fp,"Section \"ServerLayout\"\n"
 	           	   "\tIdentifier \"layout\"\n"
 	           	   "\tScreen 0 \"nvidia\"\n"
 	           	   "\tInactive \"intel\"\n"
+                           "\tOption \"AllowNVIDIAGPUScreens\" \"true\"\n"
+                           "\tOption \"AllowExternalGpus\" \"true\"\n"
+                           "\tInputDevice \"MyKeyboard\" \"CoreKeyboard\"\n"
+	           	   "EndSection\n\n");
+	           	fprintf(fp,"Section \"ServerFlags\"\n"
+	           	   "\tOption \"AllowMouseOpenFail\" \"true\"\n"
 	           	   "EndSection\n\n"
-	           	   "Section \"Device\"\n"
+	           	   "Section \"InputDevice\"\n"
+	           	   "\t Identifier \"MyKeyboard\"\n"
+			   "\t Driver \"kbd\"\n"
+			   "EndSection\n\n"
+			   "Section \"Monitor\"\n"
+			   "\t Identifier \"MyMonitor\"\n"
+			   "\t Vendorname \"Unknown\"\n"
+		           "\t ModelName  \"Unknown\"\n"
+			   "\t Option   \"DPMS\"\n"
+			   "EndSection\n\n");
+		   	fprintf(fp,"Section \"Device\"\n"
+		   	   "\tIdentifier \"nvidia\"\n"
+		   	   "\tDriver \"nvidia\"\n");
+		   	fprintf(fp,"\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_nvidia, pcidev_nvidia, pcifunc_nvidia);
+		   	fprintf(fp,"EndSection\n\n"
+		   	   "Section \"Screen\"\n"
+		   	   "\tIdentifier \"nvidia\"\n"
+		   	   "\tDevice \"nvidia\"\n"
+		   	   "\tMonitor \"MyMonitor\"\n"
+		   	   "\tOption \"AllowEmptyInitialConfiguration\" \"true\"\n"
+		   	   "\t#Option \"UseDisplayDevice\" \"None\"\n"
+		   	   "\t#Option \"IgnoreDisplayDevices\" \"CRT\"\n"
+		   	   "\t#Option \"UseEDID\" \"off\"\n"
+		   	   "\t#Option \"UseEdidDpi\" \"false\"\n"
+		   	   "\t#Option \"DPI\" \"96 x 96\"\n"
+		   	   "\t#Option \"DPI\" \"192 x 192\"\n"
+		   	   "\t#Option \"DPI\" \"282 x 282\"\n"
+		   	   "\t#Option \"TripleBuffer\" \"true\"\n"
+		   	   "EndSection\n\n");
+	           	fprintf(fp,"Section \"Device\"\n"
 	           	   "\tIdentifier \"intel\"\n"
 	           	   "\tDriver \"modesetting\"\n");
-		fprintf(fp,"#\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_intel, pcidev_intel, pcifunc_intel);
-		fprintf(fp,"\tOption \"AccelMethod\" \"None\"\n"
+			fprintf(fp,"\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_intel, pcidev_intel, pcifunc_intel);
+			fprintf(fp,"\t#Option \"AccelMethod\" \"None\"\n"
 		   	   "EndSection\n\n"
 		   	   "Section \"Screen\"\n"
 		   	   "\tIdentifier \"intel\"\n"
 		   	   "\tDevice \"intel\"\n"
+		   	   "EndSection\n");
+		}
+		else if (use_xorg_prime_offload)
+		{
+			fprintf(fp,"Section \"ServerLayout\"\n"
+	           	   "\tIdentifier \"layout\"\n"
+	           	   "\tScreen 0 \"intel\"\n"
+	           	   "\tInactive \"nvidia\"\n"
+                           "\tOption \"AllowNVIDIAGPUScreens\" \"true\"\n"
+                           "\tOption \"AllowExternalGpus\" \"true\"\n"
+                           "\tInputDevice \"MyKeyboard\" \"CoreKeyboard\"\n"
+	           	   "EndSection\n\n");
+	           	fprintf(fp,"Section \"ServerFlags\"\n"
+	           	   "\tOption \"AllowMouseOpenFail\" \"true\"\n"
+	           	   "EndSection\n\n"
+	           	   "Section \"InputDevice\"\n"
+	           	   "\t Identifier \"MyKeyboard\"\n"
+			   "\t Driver \"kbd\"\n"
+			   "EndSection\n\n"
+			   "Section \"Monitor\"\n"
+			   "\t Identifier \"MyMonitor\"\n"
+			   "\t Vendorname \"Unknown\"\n"
+		           "\t ModelName  \"Unknown\"\n"
+			   "\t Option   \"DPMS\"\n"
+			   "EndSection\n\n");
+	           	fprintf(fp,"Section \"Device\"\n"
+	           	   "\tIdentifier \"intel\"\n"
+	           	   "\tDriver \"modesetting\"\n");
+			fprintf(fp,"\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_intel, pcidev_intel, pcifunc_intel);
+			fprintf(fp,"\t#Option \"AccelMethod\" \"None\"\n"
 		   	   "EndSection\n\n"
-		   	   "Section \"Device\"\n"
+		   	   "Section \"Screen\"\n"
+		   	   "\tIdentifier \"intel\"\n"
+		   	   "\tDevice \"intel\"\n"
+		   	   "EndSection\n\n");
+		   	fprintf(fp,"Section \"Device\"\n"
 		   	   "\tIdentifier \"nvidia\"\n"
 		   	   "\tDriver \"nvidia\"\n");
-		fprintf(fp,"\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_nvidia, pcidev_nvidia, pcifunc_nvidia);
-		fprintf(fp,"EndSection\n\n"
-		   	"Section \"Screen\"\n"
-		   	"\tIdentifier \"nvidia\"\n"
-		   	"\tDevice \"nvidia\"\n"
-		   	"\tOption \"AllowEmptyInitialConfiguration\" \"on\"\n"
-		   	"\t#Option \"UseDisplayDevice\" \"None\"\n"
-		   	"\t#Option \"IgnoreDisplayDevices\" \"CRT\"\n"
-		   	"\t#Option \"UseEDID\" \"off\"\n"
-		   	"\t#Option \"UseEdidDpi\" \"false\"\n"
-		   	"\t#Option \"DPI\" \"96 x 96\"\n"
-		   	"\t#Option \"TripleBuffer\" \"true\"\n"
-		   	"EndSection\n");
-		fclose(fp);
+		   	fprintf(fp,"\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_nvidia, pcidev_nvidia, pcifunc_nvidia);
+		   	fprintf(fp,"EndSection\n\n"
+		   	   "Section \"Screen\"\n"
+		   	   "\tIdentifier \"nvidia\"\n"
+		   	   "\tDevice \"nvidia\"\n"
+		   	   "\tMonitor \"MyMonitor\"\n"
+		   	   "\tOption \"AllowEmptyInitialConfiguration\" \"true\"\n"
+		   	   "\t#Option \"UseDisplayDevice\" \"None\"\n"
+		   	   "\t#Option \"IgnoreDisplayDevices\" \"CRT\"\n"
+		   	   "\t#Option \"UseEDID\" \"off\"\n"
+		   	   "\t#Option \"UseEdidDpi\" \"false\"\n"
+		   	   "\t#Option \"DPI\" \"96 x 96\"\n"
+		   	   "\t#Option \"DPI\" \"192 x 192\"\n"
+		   	   "\t#Option \"DPI\" \"282 x 282\"\n"
+		   	   "\t#Option \"TripleBuffer\" \"true\"\n"
+		   	   "EndSection\n");
+		}
+		fclose(fp);		
 	}
 	else
 	{
@@ -634,22 +857,61 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Can't copy /etc/X11/xorg.conf.nvidiaprime to /etc/X11/xorg.conf: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
 	}
-	
-	if ((fp = fopen("/etc/X11/xsetup.d/000mageia-prime.xsetup", "w")) == NULL)
+
+	if ((fp = fopen("/etc/X11/xorg.conf.d/20-mageia-prime.conf", "w")) == NULL)
 	{
-		fprintf(stderr, "Can't write to file /etc/X11/xsetup.d/000mageia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
+		fprintf(stderr, "Can't write to file /etc/X11/xorg.conf.d/20-mageia-prime.conf: %s (error %d)\n", strerror(errno), errno);
+		exit(1);
+	}
+	fprintf(fp, "# automatically generated by mageia-prime-install\n\n");
+	fprintf(fp, "Section \"OutputClass\"\n"
+		    "\tIdentifier \"nvidia\"\n"
+		    "\tMatchDriver \"nvidia-drm\"\n"
+		    "\tDriver \"nvidia\"\n"
+		    "\tOption \"AllowEmptyInitialConfiguration\" \"on\"\n");
+        if (!use_xorg_prime_offload)
+        {
+		fprintf(fp,"\tOption \"PrimaryGPU\" \"yes\"\n");
+	}
+	fprintf(fp,"\tOption \"IgnoreDisplayDevices\" \"CRT\"\n"
+	    	   "EndSection\n\n");
+	fclose(fp);
+	
+	if ((fp = fopen("/etc/X11/xinit.d/00mageia-prime.xinit", "w")) == NULL)
+	{
+		fprintf(stderr, "Can't write to file /etc/X11/xinit.d/00mageia-prime.xinit: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
 	}
 	fprintf(fp, "# to be sourced\n"
 	            "# automatically generated by mageia-prime-install\n"
-	            "/usr/bin/xrandr --setprovideroutputsource modesetting NVIDIA-0\n"
-		    "/usr/bin/xrandr --auto\n");
+	            "#\n"
+	            "/usr/bin/mageia-prime-offload\n"
+		    );
 	fclose(fp);
 
 	/* 493 is chmod 755 */
-	if ((chmod("/etc/X11/xsetup.d/000mageia-prime.xsetup", 493)) < 0)
+	if ((chmod("/etc/X11/xinit.d/00mageia-prime.xinit", 493)) < 0)
 	{
-		fprintf(stderr, "Can't chmod 755 file /etc/X11/xsetup.d/000mageia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
+		fprintf(stderr, "Can't chmod 755 file /etc/X11/xinit.d/00mageia-prime.xinit: %s (error %d)\n", strerror(errno), errno);
+		exit(1);
+	}
+
+	if ((fp = fopen("/etc/X11/xsetup.d/00mageia-prime.xsetup", "w")) == NULL)
+	{
+		fprintf(stderr, "Can't write to file /etc/X11/xsetup.d/00mageia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
+		exit(1);
+	}
+	fprintf(fp, "# to be sourced\n"
+	            "# automatically generated by mageia-prime-install\n"
+	            "#\n"
+	            "/usr/bin/mageia-prime-offload\n"
+		    );
+	fclose(fp);
+
+	/* 493 is chmod 755 */
+	if ((chmod("/etc/X11/xsetup.d/00mageia-prime.xsetup", 493)) < 0)
+	{
+		fprintf(stderr, "Can't chmod 755 file /etc/X11/xsetup.d/00mageia-prime.xsetup: %s (error %d)\n", strerror(errno), errno);
 		exit(1);
 	}
 
@@ -662,15 +924,31 @@ int main(int argc, char **argv)
 	fprintf(fp, "nvidia-drm\n");
 	fclose(fp);
 	
-	fprintf(stderr, "Switching to NVidia GL libraries...");
-	if ((ret = system("/usr/sbin/update-alternatives --set gl_conf /etc/nvidia-current/ld.so.conf")) != 0)
+	if (use_nvidia_current && !use_nvidia_390)
 	{
-		fprintf(stderr, "Warning: failed to run update-alternatives --set gl_conf...\n");
-		clean++;
+		fprintf(stderr, "Switching to NVidia GL libraries...");
+		if ((ret = system("/usr/sbin/update-alternatives --set gl_conf /etc/nvidia-current/ld.so.conf")) != 0)
+		{
+			fprintf(stderr, "Warning: failed to run update-alternatives --set gl_conf...\n");
+			clean++;
+		}
+		else
+		{
+			fprintf(stderr, "ok.\n");
+		}
 	}
 	else
 	{
-		fprintf(stderr, "ok.\n");
+		fprintf(stderr, "Switching to NVidia GL libraries...");
+		if ((ret = system("/usr/sbin/update-alternatives --set gl_conf /etc/nvidia390/ld.so.conf")) != 0)
+		{
+			fprintf(stderr, "Warning: failed to run update-alternatives --set gl_conf...\n");
+			clean++;
+		}
+		else
+		{
+			fprintf(stderr, "ok.\n");
+		}
 	}
 	
 	if ((ret = system("/usr/sbin/ldconfig")) != 0)
@@ -726,16 +1004,16 @@ int main(int argc, char **argv)
 
 	if (clean > 0)
 	{
-		fprintf(stderr, "Mageia-Prime for NVidia configured (with %d warnings)\n", clean);
+		fprintf(stderr, "mageia-prime for NVidia graphics card configured (with %d warnings)\n", clean);
 	}
 	else
 	{
 		if (!is_xorg_to_restore)
 		{
-			fprintf(stderr,"Mageia-Prime for NVidia installed.\n");
+			fprintf(stderr,"mageia-prime for NVidia graphics card installed.\n");
 		}
 		else
-			fprintf(stderr,"Mageia-Prime for NVidia reinstalled.\n");
+			fprintf(stderr,"mageia-prime for NVidia graphics card reinstalled.\n");
 		
 	}
 
@@ -747,9 +1025,9 @@ int main(int argc, char **argv)
 	else /* zap X11 */
 	{
 		fprintf(stderr,"Zapping X11.\n");
-		if ((ret = system("/bin/systemctl restart prefdm.service")) != 0)
+		if ((ret = system("/bin/systemctl restart display-manager.service")) != 0)
 		{
-			fprintf(stderr, "Warning: Can't restart prefdm.service: %s (error %d)\n", strerror(errno), errno);
+			fprintf(stderr, "Warning: Can't restart display-manager.service: %s (error %d)\n", strerror(errno), errno);
 		}
 	}
 

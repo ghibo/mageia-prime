@@ -1,0 +1,25 @@
+#!/bin/sh
+
+arch=$(uname -m)
+
+if [ $arch == "x86_64" ]; then
+	lib="lib64"
+else
+	lib="lib"
+fi
+
+urpmi --auto \
+	glmark2 \
+	mesa-demos \
+	virtualgl \
+	nvidia-cuda-toolkit \
+	nvidia-current-lib32 \
+	nvidia-cuda-toolkit-samples-bins \
+	cuda-z \
+	${lib}vdpau-va-gl1 \
+	${lib}mesaglesv1_1 \
+	${lib}mesaglesv2_2 \
+	${lib}mesaopencl1 \
+	${lib}osmesa8 \
+	${lib}vulkan-validation-layers1
+	
