@@ -211,7 +211,7 @@ packages: `virtualgl`, `mesa-demos` and `glmark2`, all availables in Mageia Linu
 A typical usage is this:
 
 * `$ glmark2`
-* `$ vblank_mode=0 __GL_SYNC_TO_VBLANK=0 glxsphere64`
+* `$ vblank_mode=0 __GL_SYNC_TO_VBLANK=0 glxspheres64`
 * `$ vblank_mode=0 __GL_SYNC_TO_VBLANK=0 glxgears`
 * `$ glmark2-software --off-screen` (only under DRI + Mesa with Intel configured as graphics card).
 
@@ -223,9 +223,9 @@ Typical results for these benchmarks are:
 
 * glmark2-software with Gallium on LLVM pipe and Intel 6700HQ: score 740
 
-* glxsphere64 with Intel HD Graphics 530: 290 Mpixels/s
+* glxspheres64 with Intel HD Graphics 530: 290 Mpixels/s
 
-* glxsphere64 with NVidia GTX 960M: 2200 MPixels/s
+* glxspheres64 with NVidia GTX 960M: 2392 MPixels/s
 
 
 ##### Author: Giuseppe Ghibò
