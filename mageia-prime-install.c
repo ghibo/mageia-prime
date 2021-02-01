@@ -529,155 +529,155 @@ int main(int argc, char **argv)
 		}
 	}
 
-if (use_nvidia_current && !use_nvidia_390)
-{
-	fprintf(stderr, "Checking package nvidia-current-cuda-opencl...");
-	if ((ret = system("/bin/rpm --quiet -q nvidia-current-cuda-opencl")) != 0)
+	if (use_nvidia_current && !use_nvidia_390)
 	{
-		fprintf(stderr, "installing...");
+		fprintf(stderr, "Checking package nvidia-current-cuda-opencl...");
+		if ((ret = system("/bin/rpm --quiet -q nvidia-current-cuda-opencl")) != 0)
+		{
+			fprintf(stderr, "installing...");
 		
-		if (use_dnf)
-		{
-			if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
+			if (use_dnf)
 			{
-				fprintf(stderr, "failed!\n");
-				clean++;
+				if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
 			}
-			else
+			else /* urpmi */
 			{
-				fprintf(stderr, "ok.\n");
+				if ((ret = system("/usr/sbin/urpmi --auto nvidia-current-cuda-opencl")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
 			}
 		}
-		else /* urpmi */
+		else
 		{
-			if ((ret = system("/usr/sbin/urpmi --auto nvidia-current-cuda-opencl")) != 0)
-			{
-				fprintf(stderr, "failed!\n");
-				clean++;
-			}
-			else
-			{
-				fprintf(stderr, "ok.\n");
-			}
+			fprintf(stderr, "already installed.\n");
 		}
 	}
-	else
+	else if (use_nvidia_390 && !use_nvidia_current)
 	{
-		fprintf(stderr, "already installed.\n");
-	}
-}
-else if (use_nvidia_390 && !use_nvidia_current)
-{
-	fprintf(stderr, "Checking package nvidia390-cuda-opencl...");
-	if ((ret = system("/bin/rpm --quiet -q nvidia390-cuda-opencl")) != 0)
-	{
-		fprintf(stderr, "installing...");
-		
-		if (use_dnf)
+		fprintf(stderr, "Checking package nvidia390-cuda-opencl...");
+		if ((ret = system("/bin/rpm --quiet -q nvidia390-cuda-opencl")) != 0)
 		{
-			if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
-			{
-				fprintf(stderr, "failed!\n");
-				clean++;
-			}
-			else
-			{
-				fprintf(stderr, "ok.\n");
-			}
-		}
-		else /* urpmi */
-		{
-			if ((ret = system("/usr/sbin/urpmi --auto nvidia390-cuda-opencl")) != 0)
-			{
-				fprintf(stderr, "failed!\n");
-				clean++;
-			}
-			else
-			{
-				fprintf(stderr, "ok.\n");
-			}
-		}
-	}
-	else
-	{
-		fprintf(stderr, "already installed.\n");
-	}
-}
+			fprintf(stderr, "installing...");
 
-if (use_nvidia_current && !use_nvidia_390)
-{
-	fprintf(stderr, "Checking package x11-driver-video-nvidia-current...");
-	if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia-current")) != 0)
-	{
-		fprintf(stderr, "installing...");
-		
-		if (use_dnf)
-		{
-			if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia-current")) != 0)
+			if (use_dnf)
 			{
-				fprintf(stderr, "failed!\n");
-				clean++;
+				if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
 			}
-			else
+			else /* urpmi */
 			{
-				fprintf(stderr, "ok.\n");
-			}
-		}
-		else /* urpmi */
-		{
-			if ((ret = system("/usr/sbin/urpmi --auto x11-driver-video-nvidia-current")) != 0)
-			{
-				fprintf(stderr, "failed!\n");
-				clean++;
-			}
-			else
-			{
-				fprintf(stderr, "ok.\n");
+				if ((ret = system("/usr/sbin/urpmi --auto nvidia390-cuda-opencl")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
 			}
 		}
-	}
-	else
-	{
-		fprintf(stderr, "already installed.\n");
-	}
-}
-else if (use_nvidia_390 && !use_nvidia_current)
-{
-	fprintf(stderr, "Checking package x11-driver-video-nvidia390...");
-	if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia390")) != 0)
-	{
-		fprintf(stderr, "installing...");
-		
-		if (use_dnf)
+		else
 		{
-			if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia390")) != 0)
-			{
-				fprintf(stderr, "failed!\n");
-				clean++;
-			}
-			else
-			{
-				fprintf(stderr, "ok.\n");
-			}
-		}
-		else /* urpmi */
-		{
-			if ((ret = system("/usr/sbin/urpmi --auto x11-driver-video-nvidia390")) != 0)
-			{
-				fprintf(stderr, "failed!\n");
-				clean++;
-			}
-			else
-			{
-				fprintf(stderr, "ok.\n");
-			}
+			fprintf(stderr, "already installed.\n");
 		}
 	}
-	else
+
+	if (use_nvidia_current && !use_nvidia_390)
 	{
-		fprintf(stderr, "already installed.\n");
+		fprintf(stderr, "Checking package x11-driver-video-nvidia-current...");
+		if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia-current")) != 0)
+		{
+			fprintf(stderr, "installing...");
+
+			if (use_dnf)
+			{
+				if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia-current")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
+			}
+			else /* urpmi */
+			{
+				if ((ret = system("/usr/sbin/urpmi --auto x11-driver-video-nvidia-current")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
+			}
+		}
+		else
+		{
+			fprintf(stderr, "already installed.\n");
+		}
 	}
-}
+	else if (use_nvidia_390 && !use_nvidia_current)
+	{
+		fprintf(stderr, "Checking package x11-driver-video-nvidia390...");
+		if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia390")) != 0)
+		{
+			fprintf(stderr, "installing...");
+
+			if (use_dnf)
+			{
+				if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia390")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
+			}
+			else /* urpmi */
+			{
+				if ((ret = system("/usr/sbin/urpmi --auto x11-driver-video-nvidia390")) != 0)
+				{
+					fprintf(stderr, "failed!\n");
+					clean++;
+				}
+				else
+				{
+					fprintf(stderr, "ok.\n");
+				}
+			}
+		}
+		else
+		{
+			fprintf(stderr, "already installed.\n");
+		}
+	}
 	
 	if ((fp = fopen("/etc/X11/xorg.conf", "r")) == NULL)
 	{
@@ -731,14 +731,14 @@ else if (use_nvidia_390 && !use_nvidia_current)
 	           	   "\tOption \"AllowMouseOpenFail\" \"true\"\n"
 	           	   "EndSection\n\n"
 	           	   "Section \"InputDevice\"\n"
-	           	   "\t Identifier \"MyKeyboard\"\n"
-			   "\t Driver \"kbd\"\n"
+	           	   "\tIdentifier \"MyKeyboard\"\n"
+			   "\tDriver \"kbd\"\n"
 			   "EndSection\n\n"
 			   "Section \"Monitor\"\n"
-			   "\t Identifier \"MyMonitor\"\n"
-			   "\t Vendorname \"Unknown\"\n"
-		           "\t ModelName  \"Unknown\"\n"
-			   "\t Option   \"DPMS\"\n"
+			   "\tIdentifier \"MyMonitor\"\n"
+			   "\tVendorname \"Unknown\"\n"
+		           "\tModelName  \"Unknown\"\n"
+			   "\tOption     \"DPMS\"\n"
 			   "EndSection\n\n");
 		   	fprintf(fp,"Section \"Device\"\n"
 		   	   "\tIdentifier \"nvidia\"\n"
@@ -784,14 +784,14 @@ else if (use_nvidia_390 && !use_nvidia_current)
 	           	   "\tOption \"AllowMouseOpenFail\" \"true\"\n"
 	           	   "EndSection\n\n"
 	           	   "Section \"InputDevice\"\n"
-	           	   "\t Identifier \"MyKeyboard\"\n"
-			   "\t Driver \"kbd\"\n"
+	           	   "\tIdentifier \"MyKeyboard\"\n"
+			   "\tDriver \"kbd\"\n"
 			   "EndSection\n\n"
 			   "Section \"Monitor\"\n"
-			   "\t Identifier \"MyMonitor\"\n"
-			   "\t Vendorname \"Unknown\"\n"
-		           "\t ModelName  \"Unknown\"\n"
-			   "\t Option   \"DPMS\"\n"
+			   "\tIdentifier \"MyMonitor\"\n"
+			   "\tVendorname \"Unknown\"\n"
+		           "\tModelName  \"Unknown\"\n"
+			   "\tOption     \"DPMS\"\n"
 			   "EndSection\n\n");
 	           	fprintf(fp,"Section \"Device\"\n"
 	           	   "\tIdentifier \"intel\"\n"
