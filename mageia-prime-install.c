@@ -275,6 +275,7 @@ int main(int argc, char **argv)
 	int use_xorg_prime_offload = 0; /* set to 1 to use prime rendering offloading */
 	int use_nvidia_current = 1;
 	int use_nvidia_390 = 0;
+	int use_intel_driver = 0;
 	extern int nouveau_nomodeset_already_installed;
 	
 	long unsigned pcibus_intel = 0, pcidev_intel = 0, pcifunc_intel = 0;
@@ -327,6 +328,13 @@ int main(int argc, char **argv)
 						}
 						break;
 					
+					case 'i': case 'I':
+						if (argv[i][2] == '\0')
+						{
+							use_intel_driver = 1;
+						}
+						break;
+						
 					case 'p': case 'P':
 						if (argv[i][2] == '\0' )
 						{
@@ -760,11 +768,20 @@ int main(int argc, char **argv)
 		   	   "\t#Option \"TripleBuffer\" \"true\"\n"
 		   	   "EndSection\n\n");
 	           	fprintf(fp,"Section \"Device\"\n"
-	           	   "\tIdentifier \"intel\"\n"
-	           	   "\tDriver \"modesetting\"\n");
+	           	   "\tIdentifier \"intel\"\n");
+	           	if (!use_intel_driver)
+	           	{
+		           	fprintf(fp,"\tDriver \"modesetting\"\n");
+				fprintf(fp,"\t#Option \"AccelMethod\" \"None\"\n");
+			}
+			else
+			{
+				fprintf(fp,"\tDriver \"intel\"\n");
+				fprintf(fp,"\tOption \"DRI\" \"3\"\n");
+				fprintf(fp,"\tOption \"Tearfree\" \"false\"\n");
+			}
 			fprintf(fp,"\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_intel, pcidev_intel, pcifunc_intel);
-			fprintf(fp,"\t#Option \"AccelMethod\" \"None\"\n"
-		   	   "EndSection\n\n"
+		   	fprintf(fp,"EndSection\n\n"
 		   	   "Section \"Screen\"\n"
 		   	   "\tIdentifier \"intel\"\n"
 		   	   "\tDevice \"intel\"\n"
@@ -794,11 +811,20 @@ int main(int argc, char **argv)
 			   "\tOption     \"DPMS\"\n"
 			   "EndSection\n\n");
 	           	fprintf(fp,"Section \"Device\"\n"
-	           	   "\tIdentifier \"intel\"\n"
-	           	   "\tDriver \"modesetting\"\n");
+	           	   "\tIdentifier \"intel\"\n");
+	           	if (!use_intel_driver)
+	           	{
+	           		fprintf(fp,"\tDriver \"modesetting\"\n");
+				fprintf(fp,"\t#Option \"AccelMethod\" \"None\"\n");
+			}
+			else
+			{
+				fprintf(fp,"\tDriver \"intel\"\n");
+				fprintf(fp,"\tOption \"DRI\" \"3\"\n");
+				fprintf(fp,"\tOption \"TearFree\" \"false\"\n");
+			}
 			fprintf(fp,"\tBusID \"PCI:%lu:%lu:%lu\"\n", pcibus_intel, pcidev_intel, pcifunc_intel);
-			fprintf(fp,"\t#Option \"AccelMethod\" \"None\"\n"
-		   	   "EndSection\n\n"
+			fprintf(fp,"EndSection\n\n"
 		   	   "Section \"Screen\"\n"
 		   	   "\tIdentifier \"intel\"\n"
 		   	   "\tDevice \"intel\"\n"

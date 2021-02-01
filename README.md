@@ -145,6 +145,9 @@ required NVidia proprietary RPM package set. E.g.:
 
 	/usr/sbin/mageia-prime-install -d
 
+### Option '-i'
+This option allows to use the Intel driver (i.e. from package x11-driver-video-intel`) instead of kernel
+Intel `modesetting`.
 
 ### Examples
 With:
