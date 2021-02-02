@@ -149,6 +149,13 @@ required NVidia proprietary RPM package set. E.g.:
 This option allows to use the Intel driver (i.e. from package x11-driver-video-intel`) instead of kernel
 Intel `modesetting`.
 
+### Option '-k':
+This option will force the installation of the nvidia-current driver series.
+
+### Option '-3':
+This option will force the installation of the nvidia390 driver series.
+
+
 ### Examples
 With:
 

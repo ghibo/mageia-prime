@@ -275,6 +275,7 @@ int main(int argc, char **argv)
 	int use_xorg_prime_offload = 0; /* set to 1 to use prime rendering offloading */
 	int use_nvidia_current = 1;
 	int use_nvidia_390 = 0;
+	int force_nvidia_driver_installing = 0; /* auto-detect which package driver set (nvidia-current or nvidia390) to use */
 	int use_intel_driver = 0;
 	extern int nouveau_nomodeset_already_installed;
 	
@@ -297,8 +298,10 @@ int main(int argc, char **argv)
                 				{
                 					use_nvidia_390 = 1;
                 					use_nvidia_current = 0;
+							force_nvidia_driver_installing = 1;
 						}
 						break;
+
                 			case 'a': case 'A':
                 				if (argv[i][2] == '\0')
 						{
@@ -334,7 +337,16 @@ int main(int argc, char **argv)
 							use_intel_driver = 1;
 						}
 						break;
-						
+
+					case 'k': case 'K':
+						if (argv[i][2] == '\0')
+						{
+							use_nvidia_current = 1;
+							use_nvidia_390 = 0;
+							force_nvidia_driver_installing = 1;
+						}
+						break;
+
 					case 'p': case 'P':
 						if (argv[i][2] == '\0' )
 						{
@@ -462,6 +474,37 @@ int main(int argc, char **argv)
 		}
 	}
 	
+	/* Auto-detect using of nvidia-current or nvidia390 */
+	if (!force_nvidia_driver_installing)
+	{
+		fp = popen("/bin/lspcidrake -v | grep 'Card:NVIDIA'", "r");
+		if (fp == NULL) {
+			fprintf(stderr, "Can't run /bin/lspcidrake\n");
+			exit(1);
+		}
+		while (fgets(buffer, sizeof(buffer), fp) != NULL)
+		{
+			if (strcasestr(buffer, "NVIDIA GeForce 635 series and later"))
+			{
+				fprintf(stderr, "%s", buffer);
+				fprintf(stderr, "Card is supported by the nvidia-current driver set.\n");
+				use_nvidia_current = 1;
+				use_nvidia_390 = 0;
+				break;
+			}
+
+			if (strcasestr(buffer, "NVIDIA GeForce 420 to GeForce 630"))
+			{
+				fprintf(stderr, "%s", buffer);
+				fprintf(stderr, "Card is supported by the nvidia390 driver set.\n");
+				use_nvidia_390 = 1;
+				use_nvidia_current = 0;
+				break;
+			}
+		}
+		pclose(fp);
+	}
+
 	if (use_nvidia_current && !use_nvidia_390)
 	{
 		fprintf(stderr, "Checking package dkms-nvidia-current...");
