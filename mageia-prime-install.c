@@ -471,7 +471,7 @@ int main(int argc, char **argv)
 
 			if (use_dnf)
 			{
-				if ((ret = system("/usr/bin/dnf install dkms-nvidia-current")) != 0)
+				if ((ret = system("/usr/bin/dnf install -y dkms-nvidia-current")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -508,7 +508,7 @@ int main(int argc, char **argv)
 
 			if (use_dnf)
 			{
-				if ((ret = system("/usr/bin/dnf install dkms-nvidia390")) != 0)
+				if ((ret = system("/usr/bin/dnf install -y dkms-nvidia390")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -546,7 +546,7 @@ int main(int argc, char **argv)
 		
 			if (use_dnf)
 			{
-				if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
+				if ((ret = system("/usr/bin/dnf install -y nvidia-current-cuda-opencl")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -583,7 +583,7 @@ int main(int argc, char **argv)
 
 			if (use_dnf)
 			{
-				if ((ret = system("/usr/bin/dnf install nvidia-current-cuda-opencl")) != 0)
+				if ((ret = system("/usr/bin/dnf install -y nvidia-current-cuda-opencl")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -621,7 +621,7 @@ int main(int argc, char **argv)
 
 			if (use_dnf)
 			{
-				if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia-current")) != 0)
+				if ((ret = system("/usr/bin/dnf install -y x11-driver-video-nvidia-current")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -658,7 +658,7 @@ int main(int argc, char **argv)
 
 			if (use_dnf)
 			{
-				if ((ret = system("/usr/bin/dnf install x11-driver-video-nvidia390")) != 0)
+				if ((ret = system("/usr/bin/dnf install -y x11-driver-video-nvidia390")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
