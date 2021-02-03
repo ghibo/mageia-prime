@@ -327,6 +327,7 @@ int main(int argc, char **argv)
 					
 					case 'f': case 'F':
 						if (argv[i][2] == '\0')
+						{
 							force_xorg_to_overlap = 1;
 						}
 						break;
