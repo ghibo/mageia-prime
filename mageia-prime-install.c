@@ -378,7 +378,7 @@ int main(int argc, char **argv)
 	}
 
 	if ((uid = getuid()) != 0) {
-		fprintf(stderr, "Error: this program requires to be run root priviles!\n\n");
+		fprintf(stderr, "Error: this program requires root privileges to be run!\n");
 		exit(1);
 	}
 
