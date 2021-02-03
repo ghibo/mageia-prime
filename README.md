@@ -145,9 +145,18 @@ required NVidia proprietary RPM package set. E.g.:
 
 	/usr/sbin/mageia-prime-install -d
 
+### Option '-f'
+By default mageia-prime-uninstall preserves the working xorg.conf file after
+unconfiguring. In this way a subsequent call to mageia-prime-install can re-use
+such file without having to regenerate one. If a user has made customizations to the
+/etc/X11/xorg.conf, such customizations will be preserved when, after having switched to
+the Intel card, the system it is returned back to the NVidia one. The `-f' option permits
+to override this behaviour and thus create always a fresh xorg.conf, without
+having to re-use the preserved one.
+
 ### Option '-i'
-This option allows to use the Intel driver (i.e. from package x11-driver-video-intel`) instead of kernel
-Intel `modesetting`.
+This option allows to use the Intel driver (i.e. from package x11-driver-video-intel`) instead
+of kernel Intel `modesetting`.
 
 ### Option '-k':
 This option will force the installation of the nvidia-current driver series.

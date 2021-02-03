@@ -276,6 +276,7 @@ int main(int argc, char **argv)
 	int use_nvidia_current = 1;
 	int use_nvidia_390 = 0;
 	int force_nvidia_driver_installing = 0; /* auto-detect which package driver set (nvidia-current or nvidia390) to use */
+	int force_xorg_to_overlap = 0; /* force a fresh xorg.conf, don't restore the preserved one */
 	int use_intel_driver = 0;
 	extern int nouveau_nomodeset_already_installed;
 	
@@ -324,6 +325,12 @@ int main(int argc, char **argv)
                 				}
                 				break;
 					
+					case 'f': case 'F':
+						if (argv[i][2] == '\0')
+							force_xorg_to_overlap = 1;
+						}
+						break;
+
 					case 'g': case 'G':
 						if (argv[i][2] == '\0')
 						{
@@ -743,12 +750,15 @@ int main(int argc, char **argv)
 	
 	if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime.preserve", "r")) != NULL)
 	{
-		fprintf(stderr, "Found previous mageia-prime configuration.\n");
+		fprintf(stderr, "Found a previous mageia-prime configuration. Re-using.\n");
 		is_xorg_to_restore = 1;
 		fclose(fp);
 	}
 	else
 		is_xorg_to_restore = 0;
+
+	if (force_xorg_to_overlap)
+		is_xorg_to_restore = 0; /* force a fresh configuration in any case, don't restore the preserved one */
 	
 	if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime", "r")) != NULL)
 	{
