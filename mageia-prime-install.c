@@ -370,8 +370,8 @@ int main(int argc, char **argv)
 	}
 
 	if ((uid = getuid()) != 0) {
-		fprintf(stderr, "Warning: you must run this command as root!\n\n");
-		clean++;
+		fprintf(stderr, "Error: this program requires to be run root priviles!\n\n");
+		exit(1);
 	}
 
 	/* TODO: use libpciaccess instead of popen()/pclose() */
