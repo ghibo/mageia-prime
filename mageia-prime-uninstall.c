@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 							fprintf(stderr, "Usage: mageia-prime-uninstall [options]\n\n"
 								"where [options] is one or more of:\n"
 								"   -h   show this messsage\n"
-								"   -b   avoid cleaning of blacklisting nouveau and regenerating initramfs\n"
+								"   -b   avoid cleaning of blacklisting nouveau and regenerating initrd images\n"
 								"   -g   regenerate grub config\n"
 								"   -y   quick-uninstallation, skip regenerating initrd images\n"
 								"   -z   \"zap\" X11 after de-configuration\n");
