@@ -1,6 +1,30 @@
 #!/usr/bin/sh
-/usr/bin/xrandr --setprovideroutputsource modesetting NVIDIA-0
+
+# Capabilities: "Source Output", "Sink Output", "Source Offload", "Sink Offload"
+xrandr_providers=$(/usr/bin/xrandr --listproviders)
+xrandr_source=$(echo "$xrandr_providers" | grep -i "source " | grep -v -i "sink " | sed -e 's@\(.*\)name:\(.*\)@\2@I')
+xrandr_sink=$(echo "$xrandr_providers" | grep -i "sink " | head -n 1 | sed -e 's@\(.*\)name:\(.*\)@\2@I')
+
+if [ "$xrandr_sink" == "Intel" ]; then
+	if [ "$xrandr_source" == "NVIDIA-0" ]; then
+		/usr/bin/xrandr --setprovideroutputsource Intel NVIDIA-0
+	else
+		if [ ! -z "$xrandr_source" ]; then
+			/usr/bin/xrandr --setprovideroutputsource Intel "$xrandr_source"
+		fi
+	fi
+else
+	if [ "$xrandr_source" == "NVIDIA-0" ]; then
+		/usr/bin/xrandr --setprovideroutputsource modesetting NVIDIA-0
+	else
+		if [ ! -z "$xrandr_source" ]; then
+			/usr/bin/xrandr --setprovideroutputsource modesetting "$xrandr_source"
+		fi
+	fi
+fi
+
 /usr/bin/xrandr --auto
+
 xrandr_output=$(xrandr -q | grep -i -E -e "eDP|LVDS" | head -n 1 | cut -d " " -f 1)
 if [ ! -z ${xrandr_output} ]; then
 	xrandr --output "${xrandr_output}" --off
