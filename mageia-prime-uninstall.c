@@ -149,6 +149,7 @@ int main(int argc, char **argv)
 	int have_to_zap = 0;
 	int do_not_blacklist_nouveau = 0;
 	int touch_grub = 0;
+	int use_quick_install = 0;
 	
 	/* scan arguments */
         for (i = 1; i < argc; i++)
@@ -183,6 +184,7 @@ int main(int argc, char **argv)
 								"   -h   show this messsage\n"
 								"   -b   avoid cleaning of blacklisting nouveau and regenerating initramfs\n"
 								"   -g   regenerate grub config\n"
+								"   -y   quick-uninstallation, skip regenerating initrd images\n"
 								"   -z   \"zap\" X11 after de-configuration\n");
 							exit(1);
 						}
@@ -193,7 +195,14 @@ int main(int argc, char **argv)
 							touch_grub = 1;
 						}
 						break;
-                				
+
+					case 'y': case 'Y':
+						if (argv[i][2] == '\0')
+						{
+							use_quick_install = 1;
+						}
+						break;
+
 					default:
 						break;
                 		}
@@ -251,8 +260,7 @@ int main(int argc, char **argv)
 			clean++;
 		}
 	}
-	
-	
+
 	if (is_xorg_free)
 	{
 		/* system was xorg.conf free so we remove nvidia-prime config */
@@ -323,16 +331,19 @@ int main(int argc, char **argv)
 				fprintf(stderr, "Warning: Can't remove file /etc/modprobe.d/00_mageia-prime.conf: %s (error %d)\n", strerror(errno), errno);
 				clean++;
 			}
-		
-			fprintf(stderr, "Regenerating kernel initrd images...");
-			if ((ret = system("/sbin/bootloader-config --action rebuild-initrds")) != 0)
+
+			if (!use_quick_install)
 			{
-	    			fprintf(stderr, "failed!\n");
-	    			clean++;
-			}
-		    	else
+				fprintf(stderr, "Regenerating kernel initrd images...");
+				if ((ret = system("/sbin/bootloader-config --action rebuild-initrds")) != 0)
+				{
+						fprintf(stderr, "failed!\n");
+						clean++;
+				}
+				else
 		    	{
 	    			fprintf(stderr, "done.\n");
+				}
 			}
 		}
 	}

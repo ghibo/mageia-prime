@@ -275,6 +275,7 @@ int main(int argc, char **argv)
 	int use_xorg_prime_offload = 0; /* set to 1 to use prime rendering offloading */
 	int use_nvidia_current = 1;
 	int use_nvidia_390 = 0;
+	int use_quick_install = 0;
 	int force_nvidia_driver_installing = 0; /* auto-detect which package driver set (nvidia-current or nvidia390) to use */
 	int force_xorg_to_overlap = 0; /* force a fresh xorg.conf, don't restore the preserved one */
 	int use_intel_driver = 0;
@@ -348,12 +349,13 @@ int main(int argc, char **argv)
 								"   -3   force installation of nvidia390 driver series\n"
 								"   -k   force installation of nvidia-current driver series\n"
 								"   -a   provide an empty xorg.conf file, for an automatic xorg configuration\n"
-								"   -b   do not blacklist nouveau module and do not regenerate initramfs\n"
+								"   -b   do not blacklist nouveau module and do not regenerate initrd images\n"
 								"   -d   use dnf instead of urpmi for package installation\n"
 								"   -f   force a fresh xorg.conf generation\n"
 								"   -g   add nouveau.modeset=0 to grub and regenerate grub config\n"
 								"   -i   use Intel X11 driver instead of modesetting\n"
 								"   -p   configure xorg.conf for prime gpu offloading under Intel drivers\n"
+								"   -y   quick-installation, skip regenerating initrd images\n"
 								"   -z   \"zap\" X11 after configuration\n"); 
 							exit(1);
 						}
@@ -379,6 +381,13 @@ int main(int argc, char **argv)
 						{
 							use_xorg_prime_offload = 1;
 							use_xorg_auto = 0;
+						}
+						break;
+
+					case 'y': case 'Y':
+						if (argv[i][2] == '\0' )
+						{
+							use_quick_install = 1;
 						}
 						break;
 
@@ -473,16 +482,19 @@ int main(int argc, char **argv)
 	    	fprintf(fp, "options nvidia NVreg_DynamicPowerManagement=0x02\n");
 	    	fprintf(stderr, "Blacklisted nouveau kernel module in /etc/modprobe.d/00_mageia-prime.conf\n");
 	    	fclose(fp);
-	    	
-	    	fprintf(stderr, "Regenerating kernel initrd images...");
-	    	if ((ret = system("/sbin/bootloader-config --action rebuild-initrds")) != 0)
-	    	{
-	    		fprintf(stderr, "failed!\n");
-	    		clean++;
-	    	}
-	    	else
-	    	{
-	    		fprintf(stderr, "done.\n");
+
+		if (!use_quick_install)
+		{
+			fprintf(stderr, "Regenerating kernel initrd images...");
+			if ((ret = system("/sbin/bootloader-config --action rebuild-initrds")) != 0)
+			{
+				fprintf(stderr, "failed!\n");
+				clean++;
+			}
+			else
+			{
+				fprintf(stderr, "done.\n");
+			}
 		}
 	    }
 	}
@@ -1049,7 +1061,7 @@ int main(int argc, char **argv)
 			fprintf(stderr, "ok.\n");
 		}
 	}
-	
+
 	if ((ret = system("/usr/sbin/ldconfig")) != 0)
 	{
 		fprintf(stderr, "Warning: failed to run ldconfig\n");

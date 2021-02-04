@@ -167,6 +167,11 @@ This option will force the installation of the nvidia390 driver series.
 ### Option '-h'
 This option will print the options available.
 
+### Option '-y'
+This option skips regenerating of initrd images, and it is useful for instance
+for quickly switching "in" and "out" between NVidia and Intel configurations.
+
+
 ### Examples
 With:
 
