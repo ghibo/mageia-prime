@@ -164,6 +164,8 @@ This option will force the installation of the nvidia-current driver series.
 ### Option '-3':
 This option will force the installation of the nvidia390 driver series.
 
+### Option '-h'
+This option will print the options available.
 
 ### Examples
 With:

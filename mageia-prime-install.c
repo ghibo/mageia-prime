@@ -339,6 +339,25 @@ int main(int argc, char **argv)
 						}
 						break;
 					
+					case 'h': case 'H':
+						if (argv[i][2] == '\0')
+						{
+							fprintf(stderr, "Usage: mageia-prime-install [options]\n\n"
+								"where [options] is one or more of:\n"
+								"   -h   show this messsage\n"
+								"   -3   force installation of nvidia390 driver series\n"
+								"   -k   force installation of nvidia-current driver series\n"
+								"   -a   provide an empty xorg.conf file, for an automatic xorg configuration\n"
+								"   -b   do not blacklist nouveau module and do not regenerate initramfs\n"
+								"   -d   use dnf instead of urpmi for package installation\n"
+								"   -f   force a fresh xorg.conf generation\n"
+								"   -g   add nouveau.modeset=0 to grub and regenerate grub config\n"
+								"   -i   use Intel X11 driver instead of modesetting\n"
+								"   -p   configure xorg.conf for prime gpu offloading under Intel drivers\n"
+								"   -z   \"zap\" X11 after configuration\n"); 
+							exit(1);
+						}
+
 					case 'i': case 'I':
 						if (argv[i][2] == '\0')
 						{

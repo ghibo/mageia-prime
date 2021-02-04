@@ -150,18 +150,13 @@ int main(int argc, char **argv)
 	int do_not_blacklist_nouveau = 0;
 	int touch_grub = 0;
 	
-	if ((uid = getuid()) != 0) {
-		fprintf(stderr, "Warning: you must run this command as root!\n\n");
-		clean++;
-	}
-	
 	/* scan arguments */
         for (i = 1; i < argc; i++)
         {
                 if (*argv[i] == '-')
                 {
                 	char opt = argv[i][1];
-                	
+
                 	if (opt != '\0')
                 	{
                 		switch (opt)
@@ -180,7 +175,18 @@ int main(int argc, char **argv)
                 				}
                 				break;
 
-					
+					case 'h': case 'H':
+						if (argv[i][2] == '\0')
+						{
+							fprintf(stderr, "Usage: mageia-prime-uninstall [options]\n\n"
+								"where [options] is one or more of:\n"
+								"   -h   show this messsage\n"
+								"   -b   avoid cleaning of blacklisting nouveau and regenerating initramfs\n"
+								"   -g   regenerate grub config\n"
+								"   -z   \"zap\" X11 after de-configuration\n");
+							exit(1);
+						}
+
 					case 'g': case 'G':
 						if (argv[i][2] == '\0')
 						{
@@ -193,6 +199,11 @@ int main(int argc, char **argv)
                 		}
                 	}
 		}
+	}
+
+	if ((uid = getuid()) != 0) {
+		fprintf(stderr, "Error: this program requires root privileges to be run!\n");
+		exit(1);
 	}
 
 	if ((fp = fopen("/etc/X11/xorg.conf.nvidiaprime", "r")) == NULL)
