@@ -162,7 +162,7 @@ of kernel Intel `modesetting`.
 This option will force the installation of the nvidia-current driver series.
 
 ### Option '-3':
-This option will force the installation of the nvidia390 driver series.
+This option will force the installation of the nvidia470 driver series.
 
 ### Option '-h'
 This option will print the options available.

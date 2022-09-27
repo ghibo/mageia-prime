@@ -274,9 +274,9 @@ int main(int argc, char **argv)
 	int use_xorg_auto = 0; /* set to 1 for an empty/automatic xorg.conf file */
 	int use_xorg_prime_offload = 0; /* set to 1 to use prime rendering offloading */
 	int use_nvidia_current = 1;
-	int use_nvidia_390 = 0;
+	int use_nvidia_470 = 0;
 	int use_quick_install = 0;
-	int force_nvidia_driver_installing = 0; /* auto-detect which package driver set (nvidia-current or nvidia390) to use */
+	int force_nvidia_driver_installing = 0; /* auto-detect which package driver set (nvidia-current or nvidia470) to use */
 	int force_xorg_to_overlap = 0; /* force a fresh xorg.conf, don't restore the preserved one */
 	int use_intel_driver = 0;
 	extern int nouveau_nomodeset_already_installed;
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
                 			case '3':
                 				if (argv[i][2] == '\0')
                 				{
-                					use_nvidia_390 = 1;
+							use_nvidia_470 = 1;
                 					use_nvidia_current = 0;
 							force_nvidia_driver_installing = 1;
 						}
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
 							fprintf(stderr, "Usage: mageia-prime-install [options]\n\n"
 								"where [options] is one or more of:\n"
 								"   -h   show this messsage\n"
-								"   -3   force installation of nvidia390 driver series\n"
+								"   -3   force installation of nvidia470 driver series\n"
 								"   -k   force installation of nvidia-current driver series\n"
 								"   -a   provide an empty xorg.conf file, for an automatic xorg configuration\n"
 								"   -b   do not blacklist nouveau module and do not regenerate initrd images\n"
@@ -371,7 +371,7 @@ int main(int argc, char **argv)
 						if (argv[i][2] == '\0')
 						{
 							use_nvidia_current = 1;
-							use_nvidia_390 = 0;
+							use_nvidia_470 = 0;
 							force_nvidia_driver_installing = 1;
 						}
 						break;
@@ -513,7 +513,7 @@ int main(int argc, char **argv)
 		}
 	}
 	
-	/* Auto-detect using of nvidia-current or nvidia390 */
+	/* Auto-detect using of nvidia-current or nvidia470 */
 	if (!force_nvidia_driver_installing)
 	{
 		fp = popen("/bin/lspcidrake -v | grep 'Card:NVIDIA'", "r");
@@ -523,20 +523,20 @@ int main(int argc, char **argv)
 		}
 		while (fgets(buffer, sizeof(buffer), fp) != NULL)
 		{
-			if (strcasestr(buffer, "NVIDIA GeForce 635 series and later"))
+			if (strcasestr(buffer, "NVIDIA GeForce 745 series and later"))
 			{
 				fprintf(stderr, "%s", buffer);
 				fprintf(stderr, "Card is supported by the nvidia-current driver set.\n");
 				use_nvidia_current = 1;
-				use_nvidia_390 = 0;
+				use_nvidia_470 = 0;
 				break;
 			}
 
-			if (strcasestr(buffer, "NVIDIA GeForce 420 to GeForce 630"))
+			if (strcasestr(buffer, "NVIDIA GeForce 635 to GeForce 920"))
 			{
 				fprintf(stderr, "%s", buffer);
-				fprintf(stderr, "Card is supported by the nvidia390 driver set.\n");
-				use_nvidia_390 = 1;
+				fprintf(stderr, "Card is supported by the nvidia470 driver set.\n");
+				use_nvidia_470 = 1;
 				use_nvidia_current = 0;
 				break;
 			}
@@ -544,7 +544,7 @@ int main(int argc, char **argv)
 		pclose(fp);
 	}
 
-	if (use_nvidia_current && !use_nvidia_390)
+	if (use_nvidia_current && !use_nvidia_470)
 	{
 		fprintf(stderr, "Checking package dkms-nvidia-current...");
 		if ((ret = system("/bin/rpm --quiet -q dkms-nvidia-current")) != 0)
@@ -581,16 +581,16 @@ int main(int argc, char **argv)
 			fprintf(stderr, "already installed.\n");
 		}
 	}
-	else if (use_nvidia_390 && !use_nvidia_current)
+	else if (use_nvidia_470 && !use_nvidia_current)
 	{
-		fprintf(stderr, "Checking package dkms-nvidia390...");
-		if ((ret = system("/bin/rpm --quiet -q dkms-nvidia390")) != 0)
+		fprintf(stderr, "Checking package dkms-nvidia470...");
+		if ((ret = system("/bin/rpm --quiet -q dkms-nvidia470")) != 0)
 		{
 			fprintf(stderr, "installing...");
 
 			if (use_dnf)
 			{
-				if ((ret = system("/usr/bin/dnf install -y dkms-nvidia390")) != 0)
+				if ((ret = system("/usr/bin/dnf install -y dkms-nvidia470")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -602,7 +602,7 @@ int main(int argc, char **argv)
 			}
 			else /* urpmi */
 			{
-				if ((ret = system("/usr/sbin/urpmi --auto dkms-nvidia390")) != 0)
+				if ((ret = system("/usr/sbin/urpmi --auto dkms-nvidia470")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -619,7 +619,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (use_nvidia_current && !use_nvidia_390)
+	if (use_nvidia_current && !use_nvidia_470)
 	{
 		fprintf(stderr, "Checking package nvidia-current-cuda-opencl...");
 		if ((ret = system("/bin/rpm --quiet -q nvidia-current-cuda-opencl")) != 0)
@@ -656,10 +656,10 @@ int main(int argc, char **argv)
 			fprintf(stderr, "already installed.\n");
 		}
 	}
-	else if (use_nvidia_390 && !use_nvidia_current)
+	else if (use_nvidia_470 && !use_nvidia_current)
 	{
-		fprintf(stderr, "Checking package nvidia390-cuda-opencl...");
-		if ((ret = system("/bin/rpm --quiet -q nvidia390-cuda-opencl")) != 0)
+		fprintf(stderr, "Checking package nvidia470-cuda-opencl...");
+		if ((ret = system("/bin/rpm --quiet -q nvidia470-cuda-opencl")) != 0)
 		{
 			fprintf(stderr, "installing...");
 
@@ -677,7 +677,7 @@ int main(int argc, char **argv)
 			}
 			else /* urpmi */
 			{
-				if ((ret = system("/usr/sbin/urpmi --auto nvidia390-cuda-opencl")) != 0)
+				if ((ret = system("/usr/sbin/urpmi --auto nvidia470-cuda-opencl")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -694,7 +694,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (use_nvidia_current && !use_nvidia_390)
+	if (use_nvidia_current && !use_nvidia_470)
 	{
 		fprintf(stderr, "Checking package x11-driver-video-nvidia-current...");
 		if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia-current")) != 0)
@@ -731,16 +731,16 @@ int main(int argc, char **argv)
 			fprintf(stderr, "already installed.\n");
 		}
 	}
-	else if (use_nvidia_390 && !use_nvidia_current)
+	else if (use_nvidia_470 && !use_nvidia_current)
 	{
-		fprintf(stderr, "Checking package x11-driver-video-nvidia390...");
-		if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia390")) != 0)
+		fprintf(stderr, "Checking package x11-driver-video-nvidia470...");
+		if ((ret = system("/bin/rpm --quiet -q x11-driver-video-nvidia470")) != 0)
 		{
 			fprintf(stderr, "installing...");
 
 			if (use_dnf)
 			{
-				if ((ret = system("/usr/bin/dnf install -y x11-driver-video-nvidia390")) != 0)
+				if ((ret = system("/usr/bin/dnf install -y x11-driver-video-nvidia470")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -752,7 +752,7 @@ int main(int argc, char **argv)
 			}
 			else /* urpmi */
 			{
-				if ((ret = system("/usr/sbin/urpmi --auto x11-driver-video-nvidia390")) != 0)
+				if ((ret = system("/usr/sbin/urpmi --auto x11-driver-video-nvidia470")) != 0)
 				{
 					fprintf(stderr, "failed!\n");
 					clean++;
@@ -1035,7 +1035,7 @@ int main(int argc, char **argv)
 	fprintf(fp, "nvidia-drm\n");
 	fclose(fp);
 	
-	if (use_nvidia_current && !use_nvidia_390)
+	if (use_nvidia_current && !use_nvidia_470)
 	{
 		fprintf(stderr, "Switching to NVidia GL libraries...");
 		if ((ret = system("/usr/sbin/update-alternatives --set gl_conf /etc/nvidia-current/ld.so.conf")) != 0)
@@ -1051,7 +1051,7 @@ int main(int argc, char **argv)
 	else
 	{
 		fprintf(stderr, "Switching to NVidia GL libraries...");
-		if ((ret = system("/usr/sbin/update-alternatives --set gl_conf /etc/nvidia390/ld.so.conf")) != 0)
+		if ((ret = system("/usr/sbin/update-alternatives --set gl_conf /etc/nvidia470/ld.so.conf")) != 0)
 		{
 			fprintf(stderr, "Warning: failed to run update-alternatives --set gl_conf...\n");
 			clean++;
