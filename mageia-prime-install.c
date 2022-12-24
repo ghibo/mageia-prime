@@ -281,8 +281,8 @@ int main(int argc, char **argv)
 	int use_intel_driver = 0;
 	extern int nouveau_nomodeset_already_installed;
 	
-	long unsigned pcibus_intel = 0, pcidev_intel = 0, pcifunc_intel = 0;
-	long unsigned pcibus_nvidia = 0, pcidev_nvidia = 0, pcifunc_nvidia = 0;
+	long unsigned pcibus_intel = 0, pcidev_intel = 0, pcifunc_intel = 0, pcidomain_intel = 0;
+	long unsigned pcibus_nvidia = 0, pcidev_nvidia = 0, pcifunc_nvidia = 0, pcidomain_nvidia = 0;
 
 	/* scan arguments */
         for (i = 1; i < argc; i++)
@@ -421,14 +421,28 @@ int main(int argc, char **argv)
 	while (fgets(buffer, sizeof(buffer), fp) != NULL)
 	{
 		if (strcasestr(buffer, "intel")) {
+			int narg;
+
 			fprintf(stderr, "Found Intel card: %s", buffer);
-			sscanf(buffer, "%02lx:%02lx.%lu", &pcibus_intel, &pcidev_intel, &pcifunc_intel);
+			narg = sscanf(buffer, "%02lx:%02lx.%lu", &pcibus_intel, &pcidev_intel, &pcifunc_intel);
+			if (narg != 3) {
+				narg = sscanf(buffer, "%04lx:%02lx:%02lx.%lu", &pcidomain_intel, &pcibus_intel, &pcidev_intel, &pcifunc_intel);
+				if (narg != 4)
+					fprintf(stderr, "Mismatch lspci output, resulting Intel Card BusID might be incorrect, please manually fix it in /etc/X11/xorg.conf\n");
+			}
 			continue;
 		}
 		
 		if (strcasestr(buffer, "nvidia")) {
+			int narg;
+
 			fprintf(stderr, "Found Nvidia card: %s", buffer);
-			sscanf(buffer, "%02lx:%02lx.%lu", &pcibus_nvidia, &pcidev_nvidia, &pcifunc_nvidia);
+			narg = sscanf(buffer, "%02lx:%02lx.%lu", &pcibus_nvidia, &pcidev_nvidia, &pcifunc_nvidia);
+			if (narg != 3) {
+				narg = sscanf(buffer, "%04lx:%02lx:%02lx.%lu", &pcidomain_nvidia, &pcibus_nvidia, &pcidev_nvidia, &pcifunc_nvidia);
+				if (narg != 4)
+					fprintf(stderr, "Mismatch lspci output, resulting NVidia Card BusID might be incorrect, please manually fix it in /etc/X11/xorg.conf\n");
+			}
 			continue;
 		}
 	}
